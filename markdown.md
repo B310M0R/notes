@@ -24,5 +24,12 @@ But this is ***really*** important thing
 ## Blockquotes
 ```
 > like this
+>
+> This helps to use multiple paragraphs
+>> And also we can nest them
 ```
-> Blockquotes are beatiful
+> Blockquotes are beautiful
+>
+> This helps to use multiple paragraphs
+>> And also we can nest them
+
