@@ -33,3 +33,45 @@ But this is ***really*** important thing
 > This helps to use multiple paragraphs
 >> And also we can nest them
 
+## Lists
+### Ordered lists
+```
+1. First item
+2. Second item
+3. Third item
+    1. Indented item
+    2. Indented item
+4. Fourth item 
+```
+1. First item
+2. Second item
+3. Third item
+    1. Indented item
+    2. Indented item
+4. Fourth item 
+
+### Unordered lists
+```
+- First item
+- Second item
+- Third item
+    - Indented item
+    - Indented item
+- Fourth item 
+```
+Also we can use + or * for lists
+- First item
+- Second item
+- Third item
+    - Indented item
+    - Indented item
+- Fourth item 
+
+
+## Code blocks
+```
+```
+sudo rm -rf /
+```
+```
+Also code could be in line, delimited like this ``code``
