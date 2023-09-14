@@ -78,3 +78,14 @@ And code in line is placed between `
 ![The San Juan Mountains are beautiful!](/assets/images/san-juan-mountains.jpg "San Juan Mountains")
 ```
 
+## Escaping characters
+```
+Just use \
+```
+
+## Links
+```
+My favorite search engine is [Duck Duck Go](https://duckduckgo.com)
+```
+
+More useful info about markdown [HERE](https://www.markdownguide.org/basic-syntax/)
