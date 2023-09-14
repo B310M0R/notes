@@ -70,8 +70,8 @@ Also we can use + or * for lists
 
 ## Code blocks
 ```
-```
+\```
 sudo rm -rf /
+\```
 ```
-```
-Also code could be in line, delimited like this ``code``
+Also code could be in line, delimited like this `\`code\``
