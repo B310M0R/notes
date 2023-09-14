@@ -71,3 +71,10 @@ Also we can use + or * for lists
 ## Code blocks
 Block of code is placed between ``` (before and after code)
 And code in line is placed between `
+
+
+## Images
+```
+![The San Juan Mountains are beautiful!](/assets/images/san-juan-mountains.jpg "San Juan Mountains")
+```
+
