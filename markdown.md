@@ -71,6 +71,15 @@ Also we can use + or * for lists
 ## Code blocks
 Block of code is placed between ``` (before and after code)
 And code in line is placed between `
+Also best practice is to define language that is used in block of code.
+It's simply done like this:
+```
+```json
+{
+    "key": "value"
+}
+```
+```
 
 
 ## Images
