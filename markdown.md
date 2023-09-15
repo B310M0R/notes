@@ -79,7 +79,8 @@ It's simply done like this:
     "key": "value"
 }
 ```
-
+```
+```
 
 ## Images
 
