@@ -32,3 +32,35 @@ Try deleting name of parameter as well as its value
 Tamper URL, POST and cookies parameters  
 For example we are able to change password of another user without parameter "current password"  
 Or we can use reset password functionality with changing username for whom we are changing pass  
+
+## Insufficient workflow validation
+Sometimes wehen we post somehting (for example, buying an item) we are redirected to0 confirmation page after we payed for an item  
+We can try to add product to cart and repeat request to confirmation page, bypassing paying stage  
+Another example - we can bypass some auth stages. If we have role selection stage after login, we can intercept both of these requests, forward login and drop role selection. After it we possibly may have default role (admin)  
+
+## Discounts flaws
+Example: we receive discount, when buying items on more then $1000. We can try add to cart items on $1000, apply discount and then remove items.  
+
+### Infinite money flaw
+If we have discount coupons and gift cards, we can buy gift cards with discount and then activate them receiving full money (e.g. buying 10$ gift card for 7$ with discount and after activation receiving 10$ again)  
+To automate this process we can use workflow similar to this:  
+```
+Proejct options - sessions - session handling rules - add
+In Scope tab select Include all URLs
+Go back to details tab - Rule Actions - Run a macro
+POST /cart
+POST /cart/coupon
+POST /cart/checkout
+GET /cart/order-confirmation?order-confirmed=true
+POST /gift-card
+
+Next select request ET /cart/order-confirmation?order-confirmed=true
+Click Configure Item and Add custom parameter. Select parameter with gift card in bottom of the page  
+Add custom parameter to POST /gift-card. It must derived from from prior response
+```
+
+Then run this macro to GET /my-account in Intruder with NULL payloads.
+
+## Encryption oracle
+This is dangerous issue, when user's input is encrypted and he can access this encrypted view and in this way getting understanding of encryption mechanism  
+For example if we have encrypted cookie, but we have some another encrypted parameter (e.g. notification) which is sent in encrypted view, but displayed as plain text, we can replace this notification parameter with cookie to decrypt it.  
