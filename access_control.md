@@ -23,3 +23,24 @@ X-Original-URL: /admin/deleteUser
 ```
 Such headers could be possibly detected by TRACE requests  
 If such request requires a parameter (for example `?username=carlos`) add it to original url
+
+## Request method changing
+We can try to access admin functionality and try to change request method (POST -> POSTX) and use function "change request method" in repeater in order to create GET request with same functionality which will be able to bypass security protections.  
+
+## URL-matching discrepancies
+We can bypass accesss controls with changing URL's which we accesss  
+For example endpoint /admin/deleteUser could be protected, but we can try to access /ADMIN/DELETEUSER or /admin/deleteUser/  
+Also in some Spring frameworks we can access such endpoints adding file extension (e.g. .anything) and this will map us to needed endpoint
+
+## Horizontal privilege escalation
+```
+https://insecure-website.com/myaccount?id=123
+```
+Attacker can change id parameter and access another account resources(IDOR)  
+App can use some non-predictable values such as GUID. In such case we need to find another GUID disclosed somewhere on the site (from other users messages for example)  
+Sometimes when user tries to access restricted resource, he is redirected to login page. It worth to check this redirect, because sometimes it can leak some information  
+Sometimes horixontal privesc could lead to vertical (if we are getting into admin account)  
+
+## Referer based vuilns
+Some access control systems could only check Referer header in order to permit or prohibit request  
+For example /admin endpoint could be stronlgly protected, but /admin/deleteUser can only check Referer header and if it's based on /admin Referer, it would pass request  
