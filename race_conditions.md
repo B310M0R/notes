@@ -55,3 +55,22 @@ POST /login
 GET /admin
 ```
 If we will send this requests quick enough, we could be potentially able to bypass MFA check which must arise right after login request.  
+
+To check race conditions we can send group of requests in sequence (separate connections), then single-packet attack (parallel connections) and observe responses.  
+
+## Multi-endpoint race conditions
+We can potentially bypass basket confirmations in online shops if we will by something additionally during basket confirmation. So we have 1 item in basket and during order confirmation we are adding one more item and buying it together with first.  
+Always try t oexploit race condition couple of times.  
+Also try to send "warming" requests to another endpoints such as /home  
+Also we can try to slow down the server sending multiple dummy hard requests to make race window bigger  
+
+## Single-endpoint race condition
+We can try to exploit update email or update password functionality with race condition. 
+For example we can send request to change our e-mail to something available and in parallel send request to change our e-mail to one that is occupied by another user, cathing it's account. Or we can try to send request to update our password and in parallel send request to change another user's password.  
+
+## Partial construction race conditions
+This race condition appears when some objects initialized by server are initialized partially with null values (For example API key for user during registration could be null for small race window)  
+In PHP and Ruby we are able to construct requests with null values like this: 
+```
+GET /api/user/info?user=victim&api-key[]= HTTP/2
+```
