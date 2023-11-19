@@ -110,3 +110,4 @@ def handleResponse(req, interesting):
 
 ## Time-based attacks
 If server uses timestamp for encrypting password, we potentially could be able to reset password for two different suers if we send our requests at the same time.  
+So if we will send two requests (with different session tokens and csrf) to reset password endpoint, we would have same tokens with soime arbitrary user.  
