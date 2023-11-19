@@ -107,3 +107,6 @@ Content-Length: 0
 def handleResponse(req, interesting):
     table.add(req)
 ```
+
+## Time-based attacks
+If server uses timestamp for encrypting password, we potentially could be able to reset password for two different suers if we send our requests at the same time.  
