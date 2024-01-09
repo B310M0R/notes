@@ -55,3 +55,5 @@ DOM-data manipulation 	            element.setAttribute()
 Denial of service 	                RegExp()
 
 ```
+
+## DOM-based open redirects

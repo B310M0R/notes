@@ -101,5 +101,9 @@ Another way is bypassing inadequate validating of Referer header. We can set vul
 http://vulnerable-website.com.attacker-website.com/csrf-attack
 http://attacker-website.com/csrf-attack?vulnerable-website.com
 ```
-It's important to detect `Referrer-Policy: unsafe-url` header in response. This ensures that the full URL will be sent, including the query string.  
+It's important to add `Referrer-Policy: unsafe-url` header. This ensures that the full URL will be sent, including the query string.  
+We can modify JS script in CSRF PoC ike this:
+```
+history.pushState("", "", "/?YOUR-LAB-ID.web-security-academy.net")
+```
 
