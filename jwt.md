@@ -39,13 +39,7 @@ Ideally, servers should only use a limited whitelist of public keys to verify JW
 You can exploit this behavior by signing a modified JWT using your own RSA private key, then embedding the matching public key in the jwk header.  
 Although you can manually add or modify the jwk parameter in Burp  
 
-* With the extension loaded, in Burp's main tab bar, go to the JWT Editor Keys tab.
-* Generate a new RSA key.
-* Send a request containing a JWT to Burp Repeater.
-* In the message editor, switch to the extension-generated JSON Web Token tab and modify the token's payload however you like.
-* Click Attack, then select Embedded JWK. When prompted, select your newly generated RSA key.
-* Send the request to test how the server responds.
-You can also perform this attack manually by adding the jwk header yourself. However, you may also need to update the JWT's kid header parameter to match the kid of the embedded key.  
+* Withhttps://exploit-0a91008f04c2b46f8146014601a500d6.exploit-server.net/n also perform this attack manually by adding the jwk header yourself. However, you may also need to update the JWT's kid header parameter to match the kid of the embedded key.  
 ```
 {
     "kid": "ed2Nf8sb-sD6ng0-scs5390g-fFD8sfxG",
@@ -105,3 +99,9 @@ If this parameter is also vulnerable to directory traversal, an attacker could p
 This is especially dangerous if the server also supports JWTs signed using a symmetric algorithm. In this case, an attacker could potentially point the kid parameter to a predictable, static file, then sign the JWT using a secret that matches the contents of this file.   
 You could theoretically do this with any file, but one of the simplest methods is to use /dev/null, which is present on most Linux systems. As this is an empty file, reading it returns an empty string. Therefore, signing the token with a empty string will result in a valid signature.  
 Signing with an empty string is a signing with null byte (base64 encoded -`AA==`)
+## Other interesting JWT header parameters
+* cty (Content Type) - Sometimes used to declare a media type for the content in the JWT payload. This is usually omitted from the header, but the underlying parsing library may support it anyway. If you have found a way to bypass signature verification, you can try injecting a cty header to change the content type to text/xml or application/x-java-serialized-object, which can potentially enable new vectors for XXE and deserialization attacks. 
+* x5c (X.509 Certificate Chain) - Sometimes used to pass the X.509 public key certificate or certificate chain of the key used to digitally sign the JWT. This header parameter can be used to inject self-signed certificates, similar to the jwk header injection attacks discussed above  
+## Algorithm confusion attacks
+Algorithm confusion attacks (also known as key confusion attacks) occur when an attacker is able to force the server to verify the signature of a JSON web token (JWT) using a different algorithm than is intended by the website's developers  
+[more](https://portswigger.net/web-security/jwt/algorithm-confusion)  

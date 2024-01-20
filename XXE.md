@@ -19,7 +19,7 @@ We define external entity `xxe` which contains /etc/passwd file and then pass th
 ```
 <!DOCTYPE foo [ <!ENTITY xxe SYSTEM "http://internal.vulnerable-website.com/"> ]>
 ```
-We can try to access EC@ metadata endpoint with this attack (http://169.254.169.254/latest/meta-data/)
+We can try to access EC2 metadata endpoint with this attack (http://169.254.169.254/latest/meta-data/)
 
 ## Blind XXE
 We can use XInclude when we don't contol entire XML document and can't create or modify DOCTYPE entity
