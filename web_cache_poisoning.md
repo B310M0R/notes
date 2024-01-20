@@ -215,3 +215,12 @@ Then we can induce victim to follow url
 ```
 Also another delimiters could be used, such as `$$`  
 ## Poisoning internal caches
+However, some websites implement caching behavior directly into the application in addition to using a distinct, external component.  
+For example, if the response reflects a mixture of both input from the last request you sent and input from a previous request, this is a key indicator that the cache is storing fragments rather than entire responses. The same applies if your input is reflected in responses on multiple distinct pages, in particular on pages in which you never tried to inject your input.  
+### Lab:
+use `X-Forwarded-Host` to change src of javascript files  
+We take control over `analytics.js`  
+Also we can add buster parameter to request and it will reflect in page's response. And when we change it, we observe that `geolocate.js` source also changes  
+This indicates that this fragment is being cached separately by the internal cache  
+header is unkeyed by the internal cache but keyed by the external one.  
+To exploit this internal cache poisoning, we can host our own evil `/js/geolocate.js`, with payload `alert(document.cookie)`  
