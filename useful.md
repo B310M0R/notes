@@ -292,6 +292,7 @@ location="http://stock.YOUR-LAB-ID.web-security-academy.net/?productId=4<script>
 2. Git disclosure  
 ```
 wget -r https://YOUR-LAB-ID.web-security-academy.net/.git/
+git-cola --repo <url>
 ```
 ## XXE
 The main tip is to scan the whole (not targeted!) request to, usually, /product/stock check  
@@ -1041,6 +1042,7 @@ https://site.com/?__proto__.sequence=alert(1)-
 3. Client-side prototype pollution via flawed sanitization
 ```
 https://site.com/?__pro__proto__to__[transport_url]=data:,alert(1)
+vulnerable-website.com/?__pro__proto__to__.gadget=payload
 ```
 4. Client-side prototype pollution in third-party libraries
 ```
