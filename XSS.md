@@ -98,10 +98,7 @@ If result is returned in JSON we can use such exploit:
 ```
 Sometimes stored DOM XSS could occur when website accepts request, stores it somewhere and then uses it as a response somewhere later
 ```
-element.innerHTML = comment.author
-```
-Possible vector:
-```
+element.innerHTML = case
 <><img src=1 onerror=alert(1)>
 ```
 This payload is helpful when JS uses `replace()` function to validate angle brackets. But in such case it replaces only first sequence of brackets and next runs an exploit.  

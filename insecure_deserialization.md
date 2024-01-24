@@ -166,7 +166,7 @@ The first step is to study this source code to identify a class that contains a 
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class ProductTemplate implements Serializable
+public class ProductTemplate implements Serializable1
 {
     static final long serialVersionUID = 1L;
 
