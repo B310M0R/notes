@@ -39,7 +39,7 @@ Ideally, servers should only use a limited whitelist of public keys to verify JW
 You can exploit this behavior by signing a modified JWT using your own RSA private key, then embedding the matching public key in the jwk header.  
 Although you can manually add or modify the jwk parameter in Burp  
 
-* Withhttps://exploit-0a91008f04c2b46f8146014601a500d6.exploit-server.net/n also perform this attack manually by adding the jwk header yourself. However, you may also need to update the JWT's kid header parameter to match the kid of the embedded key.  
+* With https://exploit-0a91008f04c2b46f8146014601a500d6.exploit-server.net/n also perform this attack manually by adding the jwk header yourself. However, you may also need to update the JWT's kid header parameter to match the kid of the embedded key.  
 ```
 {
     "kid": "ed2Nf8sb-sD6ng0-scs5390g-fFD8sfxG",

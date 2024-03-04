@@ -137,10 +137,7 @@ Potential IDOR
     Variables:
     {
         "id": 1
-    }
-```
-### Aliases
-Aliases pass some unique names for multiple properties:
+    }attacker@exploit-0a9e00b3035a8d718614d4ac01e50083.exploit-server.netr multiple properties:
 ```
 #Valid query using aliases
 
