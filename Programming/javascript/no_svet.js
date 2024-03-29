@@ -1,53 +1,51 @@
-// Scope
-let a 
-let b 
+//Arrays
+// two same arrya won't be equal, because they are objects and under rhe hood they are just links to objects, that always differ
 
-function myFn() {
-    let b
-    a = true
-    b = 10
-    console.log(a) //true
-    console.log(b) // 10
-}
+let myArray = []
+myArray1 = []
 
-myFn()
-console.log(a) //true
-console.log(b) //undefined
-// it's not recommended to change global variables from function. Inner variables for inner scope.
-//variables that are created without let or const (just a = 10) are automatically created in global scope. 
-// it's better not to do that
+equality = (myArray === myArray1)
+console.log(equality)
 
-// Sctrict mode
-'use strict' // this must be written at the top of program
-function myFn(){
-    //a = true // error
-    let a = true
-    console.log(a)
-}
-myFn()
-// also we can use strict mode not in global scope, but inside of function
+myArray2 = myArray
+equality = (myArray === myArray2)
+console.log(equality)
+// array2 is a link to an first array, so they are equal. But to created arrays are different even if they look simple, because they are objects
 
-// Operators
-// text operators: typeof, instanceof, new, delete
-const user = {
-    name: 'Bob',
-    age: 21,
-    gender: 'helicopter'
-}
+myArray.length = 7
+console.log(myArray)
+// we can manually change length of array and it will add empty elements
 
-delete user.gender
-console.log(user)
-// delete operator deletes object's property
+myArray[0] = 'abc'
+myArray.length = 1
+console.log(myArray)
 
-const type = typeof user.age
-typeof 10
-typeof 'abc'
-console.log(type)
-typeof 1 === 3
-// typeof defines type of objects's property
+myArray.push(1337) // add element to array
+console.log(myArray)
 
-// instance = instanceof user.age
-// console.log(instance) 
-// with instanceof we can check reference of object to a class
+myArray.pop()   // delete element from array
+console.log(myArray)
 
+let removedElement = myArray.pop()
+console.log(myArray)
+console.log(removedElement)
+
+myArray = [1, 2, 3, 4, 5]
+myArray.unshift(0)  // add element to beginning of array
+console.log(myArray)
+
+removedElement = myArray.shift() // delete first element of array
+console.log(myArray)
+console.log(removedElement)
+
+//all array methods are mutating original array
+
+myArray.forEach(el => console.log(el * 2))
+console.log(myArray)
+//forEach does operations with array elements, but doesn't change array
+
+const newArray = myArray.map(el => el * 3)
+console.log(myArray)
+console.log(newArray)
+//difference between map and forEach is that map RETURNS new modified array, while forEach only processes elements
 
