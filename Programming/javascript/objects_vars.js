@@ -150,3 +150,37 @@ person4.name='Vlada'
 console.log(person4)
 //This method helps to protect nested objects as well
 // we convert object into JSON string with stringify() and then parse it to normal JS object with parse()
+
+// Destructural assignment
+// used to create variable and assign them values from objects
+
+userProfile = {
+    username: 'Denys',
+    age: 21,
+    hasDog: true
+}
+
+const { username, age } = userProfile
+const { hasDog } = userProfile
+console.log(username)
+console.log(hasDog)
+
+const fruitArray = ['Apple', 'Banana']
+const [fruitOne, fruitTwo] = fruitArray
+console.log(fruitTwo)
+// destructural assignment works with arrays
+// with objects we use {}, but with arrays we use []
+
+const newUserProfile = {
+    name: 'Denys',
+    age: 21,
+    hasDog: true
+}
+ 
+const userInfo = ({ name, hasDog }) => {
+    if (hasDog) {
+        return `User ${name} has dog`
+    }
+}
+console.log(userInfo(newUserProfile))
+// destructural assignment with functions. We can use object properties as function params
