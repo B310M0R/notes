@@ -37,9 +37,9 @@ console.log(myArray)
 myArray.pop()   // delete element from array
 console.log(myArray)
 
-let removedElement = myArray.pop()
+let removedElement1 = myArray.pop()
 console.log(myArray)
-console.log(removedElement)
+console.log(removedElement1)
 
 myArray = [1, 2, 3, 4, 5]
 myArray.unshift(0)  // add element to beginning of array
