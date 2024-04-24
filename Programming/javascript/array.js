@@ -37,6 +37,47 @@ console.log(myArray)
 myArray.pop()   // delete element from array
 console.log(myArray)
 
+let removedElement1 = myArray.pop()
+console.log(myArray)
+console.log(removedElement1)
+
+myArray = [1, 2, 3, 4, 5]
+myArray.unshift(0)  // add element to beginning of array
+const old_myArray = [1, 2, 3]
+console.log(old_myArray)
+
+const old_newArray = new Array('abc', 5, 6)
+console.log(old_newArray)
+console.log(old_newArray.length)
+console.log(old_newArray[0])
+
+// two same arrya won't be equal, because they are objects and under rhe hood they are just links to objects, that always differ
+
+let myArray = []
+myArray1 = []
+
+equality = (myArray === myArray1)
+console.log(equality)
+
+myArray2 = myArray
+equality = (myArray === myArray2)
+console.log(equality)
+// array2 is a link to an first array, so they are equal. But to created arrays are different even if they look simple, because they are objects
+
+myArray.length = 7
+console.log(myArray)
+// we can manually change length of array and it will add empty elements
+
+myArray[0] = 'abc'
+myArray.length = 1
+console.log(myArray)
+
+myArray.push(1337) // add element to array
+console.log(myArray)
+
+myArray.pop()   // delete element from array
+console.log(myArray)
+
 let removedElement = myArray.pop()
 console.log(myArray)
 console.log(removedElement)
@@ -58,5 +99,8 @@ console.log(myArray)
 const newArray = myArray.map(el => el * 3)
 console.log(myArray)
 console.log(newArray)
+//difference between map and forEach is that map RETURNS new modified array, while forEach only processes elements
+
+
 //difference between map and forEach is that map RETURNS new modified array, while forEach only processes elements
 
