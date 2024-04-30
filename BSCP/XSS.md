@@ -57,7 +57,7 @@ element.innerHTML='... <img src=1 onerror=alert(document.domain)> ...'
 #### DOM XSS in jQuery
 We need to search for sinks which modify DOM elements in jQuery. Example:  
 ```
-$(function() {
+$(function() {1"%20onerror=alert()
 	$('#backLink').attr("href",(new URLSearchParams(window.location.search)).get('returnUrl'));
 });
 ```
