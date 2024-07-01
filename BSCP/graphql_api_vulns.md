@@ -177,7 +177,7 @@ Fragments are pre-defined parts of queries which can be used in multiple queries
     }
 ```
 ```
-#Response including fragment fields
+# Response including fragment fields
 
     {
         "data": {
